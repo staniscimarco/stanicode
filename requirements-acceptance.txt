@@ -1,0 +1,4 @@
+# Build-runner tools only; none are required on the user's PC.
+playwright==1.62.0
+pywinauto==0.6.9; sys_platform == 'win32'
+pefile==2024.8.26

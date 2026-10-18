@@ -4,9 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-import shutil
 import struct
-import tempfile
 import zipfile
 from verify_bundle import verify
 
@@ -80,45 +78,37 @@ def build(executable, payload, output):
     ):
         raise ValueError("CycloneDX SBOM required")
     output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="stanicode-portable-") as directory:
-        folder = Path(directory) / "STANICODE"
-        folder.mkdir()
-        shutil.copy2(executable, folder / "STANICODE.exe")
-        shutil.copytree(payload, folder / "payload")
-        (folder / "LEGGIMI.txt").write_text(
-            "STANICODE — candidato di sviluppo, non release collaudata.\nEstrai tutta questa cartella e apri STANICODE.exe.\nScegli un progetto, descrivi la richiesta e controlla le modifiche proposte prima di approvarle.\nI test eseguono codice con i tuoi permessi.\nQuesta build non e firmata: Windows puo mostrare SmartScreen.\n",
-            encoding="utf-8",
-        )
-        checksums = []
-        for path in sorted(folder.rglob("*")):
-            if path.is_file():
-                checksums.append(
-                    sha256(path) + "  " + path.relative_to(folder).as_posix()
-                )
-        (folder / "SHA256SUMS.txt").write_text(
-            "\n".join(checksums) + "\n", encoding="utf-8"
-        )
-        pending = output.with_suffix(output.suffix + ".tmp")
-        try:
-            # ZIP64 supports multi-GB GGUF payloads. No manual chunk assembly.
-            with zipfile.ZipFile(
-                pending,
-                "w",
-                compression=zipfile.ZIP_DEFLATED,
-                compresslevel=1,
-                allowZip64=True,
-            ) as archive:
-                for path in sorted(folder.rglob("*")):
-                    if path.is_file():
-                        archive.write(
-                            path, path.relative_to(Path(directory)).as_posix()
-                        )
-            with zipfile.ZipFile(pending) as archive:
-                if archive.testzip() is not None:
-                    raise ValueError("Archive integrity check failed")
-            pending.replace(output)
-        finally:
-            pending.unlink(missing_ok=True)
+    # Stream original payload files directly into ZIP64. Copying a 4.7 GB
+    # model into another staging tree can exhaust the Windows build disk.
+    entries = [(executable, "STANICODE.exe")] + [
+        (path, "payload/" + path.relative_to(payload).as_posix())
+        for path in sorted(payload.rglob("*")) if path.is_file()
+    ]
+    checksums = [sha256(path) + "  " + name for path, name in entries]
+    readme = (
+        "STANICODE — candidato di sviluppo, non release collaudata.\n"
+        "Estrai tutta questa cartella e apri STANICODE.exe.\n"
+        "Scegli un progetto, descrivi la richiesta e controlla le modifiche proposte prima di approvarle.\n"
+        "I test eseguono codice con i tuoi permessi.\n"
+        "Questa build non e firmata: Windows puo mostrare SmartScreen.\n"
+    ).encode("utf-8")
+    checksums.append(hashlib.sha256(readme).hexdigest() + "  LEGGIMI.txt")
+    pending = output.with_suffix(output.suffix + ".tmp")
+    try:
+        with zipfile.ZipFile(pending, "w", compression=zipfile.ZIP_DEFLATED,
+                             compresslevel=1, allowZip64=True) as archive:
+            for path, name in entries:
+                # Quantized weights scarcely compress; storing them saves CPU.
+                kind = zipfile.ZIP_STORED if path.suffix == ".gguf" else zipfile.ZIP_DEFLATED
+                archive.write(path, "STANICODE/" + name, compress_type=kind)
+            archive.writestr("STANICODE/LEGGIMI.txt", readme)
+            archive.writestr("STANICODE/SHA256SUMS.txt", "\n".join(checksums) + "\n")
+        with zipfile.ZipFile(pending) as archive:
+            if archive.testzip() is not None:
+                raise ValueError("Archive integrity check failed")
+        pending.replace(output)
+    finally:
+        pending.unlink(missing_ok=True)
     output.with_suffix(output.suffix + ".sha256").write_text(
         sha256(output) + "  " + output.name + "\n"
     )
