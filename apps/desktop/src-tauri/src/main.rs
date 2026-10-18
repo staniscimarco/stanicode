@@ -75,10 +75,23 @@ fn main() {
     let mut context = tauri::generate_context!();
     // The same release binary is driven by the native acceptance harness.
     // Inspector access remains off for ordinary launches.
-    let inspect = cfg!(debug_assertions)
-        || std::env::var("STANICODE_NATIVE_ACCEPTANCE").as_deref() == Ok("1");
+    let acceptance = std::env::var("STANICODE_NATIVE_ACCEPTANCE").as_deref() == Ok("1");
+    let inspect = cfg!(debug_assertions) || acceptance;
+    if acceptance {
+        eprintln!("STANICODE native acceptance: explicit WebView inspection on loopback port 19222");
+    }
     for window in &mut context.config_mut().app.windows {
         window.devtools = Some(inspect);
+        if acceptance {
+            // Pass these through the actual WebView environment options.
+            // Fixed runtimes may ignore inherited debugging environment vars.
+            window.additional_browser_args = Some(
+                "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=19222"
+                    .into(),
+            );
+            window.data_directory = std::env::var_os("WEBVIEW2_USER_DATA_FOLDER")
+                .map(std::path::PathBuf::from);
+        }
     }
     let builder = tauri::Builder::default();
     #[cfg(windows)]
