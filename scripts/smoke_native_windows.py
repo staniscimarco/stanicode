@@ -30,6 +30,12 @@ def wait_for_cdp(port, process):
     raise TimeoutError("Native WebView2 debugging endpoint did not start")
 
 
+def clone_payload(source, destination):
+    # Separate directories keep new browser cache/log files out of the
+    # distributable. Hard links share immutable multi-GB payload bytes.
+    shutil.copytree(source, destination, copy_function=os.link)
+
+
 def main():
     if os.name != "nt":
         raise RuntimeError("Actual Windows desktop acceptance requires Windows")
@@ -44,8 +50,12 @@ def main():
     evidence = Path(".local/evidence").resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     port = 19222
-    with tempfile.TemporaryDirectory(prefix="stanicode-native-") as directory:
+    temporary = Path(".local/native-tests").resolve()
+    temporary.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="stanicode-native-", dir=temporary, ignore_cleanup_errors=True) as directory:
         root = Path(directory).resolve()
+        clone_payload(payload, root / "payload")
+        payload = root / "payload"
         workspace = root / "workspace"
         workspace.mkdir()
         executable = root / "STANICODE.exe"
@@ -53,9 +63,6 @@ def main():
         for dll in (payload / "models").glob("*.dll"):
             if dll.name.lower().startswith(("vcruntime", "msvcp", "concrt")):
                 shutil.copy2(dll, root / dll.name)
-        # A build-only junction avoids duplicating multi-GB weights. The
-        # distributable ZIP contains real files, never this junction.
-        subprocess.run(["cmd", "/c", "mklink", "/J", str(root / "payload"), str(payload)], check=True, stdout=subprocess.DEVNULL)
         environment = {
             key: value for key, value in os.environ.items()
             if key in {"SystemRoot", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "COMSPEC"}
@@ -240,8 +247,6 @@ Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Obj
             if app and app.poll() is None:
                 subprocess.run(["taskkill", "/PID", str(app.pid), "/T", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-File", str(rules), "remove", str(programs), firewall_group], check=True)
-            # Remove only the junction, not the payload to which it points.
-            os.rmdir(root / "payload")
 
 
 if __name__ == "__main__":

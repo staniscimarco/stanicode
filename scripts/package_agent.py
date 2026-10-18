@@ -45,6 +45,9 @@ shutil.copytree(root / ".local" / "frozen" / "stanicode-agent", out, dirs_exist_
 # Preserve verification notices from source; no credential files are copied.
 for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
     shutil.copy2(root / name, out / name)
+research_docs = out / "research"
+research_docs.mkdir(exist_ok=True)
+shutil.copy2(root / "docs" / "EXPERIMENTAL_RESEARCH.md", research_docs / "README.md")
 models = root / "models"
 if (models / "manifest.json").exists():
     from verify_bundle import verify

@@ -11,6 +11,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("executable")
 args = parser.parse_args()
 exe = Path(args.executable).resolve(strict=True)
+research_help = subprocess.run([str(exe), "--research", "--help"], capture_output=True, text=True, timeout=30)
+if research_help.returncode or "prepare-merge" not in research_help.stdout:
+    raise RuntimeError("Packaged experimental preparation command missing: " + research_help.stderr)
+print("Packaged research preparation entry point: OK; no training executed")
 with tempfile.TemporaryDirectory(prefix="stanicode-packaged-smoke-") as directory:
     root = Path(directory)
     project = root / "project"

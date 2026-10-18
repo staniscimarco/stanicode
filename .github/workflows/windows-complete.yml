@@ -82,13 +82,23 @@ jobs:
       - name: Real-model coding, actual tests and independent review
         run: python scripts/ci_run.py python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models
       - name: Assemble verified complete Windows candidate
-        run: python scripts/ci_run.py python scripts/build_portable.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
+        run: python scripts/ci_run.py python scripts/build_portable.py --executable apps/desktop/src-tauri/target/release/stanicode.exe --artifact-directory .local/actions-delivery
       - uses: actions/upload-artifact@v4
+        id: delivery
         with:
-          name: STANICODE-Windows-x64-complete-candidate
-          path: .local/artifacts/*
+          name: STANICODE-Windows-x64-Portable
+          path: .local/actions-delivery/
+          include-hidden-files: true
           compression-level: 0
           if-no-files-found: error
+      - name: Record actual downloadable ZIP identity
+        env:
+          STANICODE_ARTIFACT_URL: ${{ steps.delivery.outputs.artifact-url }}
+          STANICODE_ARTIFACT_DIGEST: ${{ steps.delivery.outputs.artifact-digest }}
+        run: |
+          if ($env:STANICODE_ARTIFACT_DIGEST -notmatch '^[0-9a-f]{64}$') { throw 'Uploaded ZIP digest is missing' }
+          $record = @{url=$env:STANICODE_ARTIFACT_URL;sha256=$env:STANICODE_ARTIFACT_DIGEST;status='candidate-clean-windows-acceptance-pending'} | ConvertTo-Json -Compress
+          Write-Output ('::notice title=Actual downloadable Windows ZIP::'+$record)
       - uses: actions/upload-artifact@v4
         if: always()
         with:

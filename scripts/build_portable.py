@@ -3,7 +3,9 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
 import struct
 import zipfile
 from verify_bundle import verify
@@ -44,7 +46,8 @@ def verify_webview(root):
     }
     if names != expected:
         raise ValueError(
-            "Every fixed WebView2 file, including its license, must be hashed"
+            "Fixed WebView2 inventory differs: unexpected=" + repr(sorted(expected - names)[:20])
+            + "; missing=" + repr(sorted(names - expected)[:20])
         )
     if manifest["license_file"] not in names:
         raise ValueError("WebView2 license must be included")
@@ -71,7 +74,7 @@ def verify_notices(payload):
                 raise ValueError("Dependency license integrity mismatch: " + reference)
 
 
-def build(executable, payload, output):
+def build(executable, payload, output, artifact_directory=None):
     executable = Path(executable).resolve(strict=True)
     payload = Path(payload).resolve(strict=True)
     output = Path(output)
@@ -131,10 +134,24 @@ def build(executable, payload, output):
     output.with_suffix(output.suffix + ".sha256").write_text(
         archive_hash + "  " + output.name + "\n"
     )
-    metadata = {"file": output.name, "bytes": output.stat().st_size,
+    metadata = {"kind": "local-assembly-zip", "file": output.name, "bytes": output.stat().st_size,
                 "sha256": archive_hash, "status": "candidate-clean-windows-acceptance-pending"}
     output.with_suffix(output.suffix + ".json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    print("::notice title=Verified portable candidate::" + json.dumps(metadata))
+    print("::notice title=Verified local assembly ZIP::" + json.dumps(metadata))
+    if artifact_directory:
+        # Actions creates the downloadable ZIP itself. Upload the complete
+        # tree so the owner extracts once, without a ZIP nested in a ZIP.
+        directory = Path(artifact_directory) / "STANICODE"
+        directory.mkdir(parents=True, exist_ok=False)
+        for source, name in entries:
+            destination = directory / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                os.link(source, destination)
+            except OSError:
+                shutil.copy2(source, destination)
+        (directory / "LEGGIMI.txt").write_bytes(readme)
+        (directory / "SHA256SUMS.txt").write_text("\n".join(checksums) + "\n", encoding="utf-8", newline="\n")
     print("Verified payload assembled as an UNACCEPTED Windows candidate:", output.name)
     return output
 
@@ -143,9 +160,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--executable", required=True)
     parser.add_argument("--payload", default=".local/package")
+    parser.add_argument("--artifact-directory", help="Export the verified tree for a single-extraction Actions artifact")
     parser.add_argument(
         "--output",
         default=".local/artifacts/STANICODE-Windows-x64-Portable-candidate.zip",
     )
     args = parser.parse_args()
-    build(args.executable, args.payload, args.output)
+    build(args.executable, args.payload, args.output, args.artifact_directory)
+    if args.artifact_directory:
+        evidence = Path(".local/evidence/portable-assembly.json")
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(Path(args.output).with_suffix(Path(args.output).suffix + ".json"), evidence)

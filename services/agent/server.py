@@ -147,6 +147,11 @@ def make_server(engine, token, runtime, port=0):
 def main():
     import sys
 
+    if len(sys.argv) > 1 and sys.argv[1] == "--research":
+        from research import main as research_main
+
+        research_main(sys.argv[2:])
+        return
     if len(sys.argv) == 3 and sys.argv[1] == "--run-tests":
         from test_runner import run
 

@@ -12,6 +12,7 @@ import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from build_portable import build, windows_x64
 from verify_bundle import verify
+from smoke_native_windows import clone_payload
 
 
 class Packaging(unittest.TestCase):
@@ -116,6 +117,29 @@ class Packaging(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             build(self.root / "app.exe", self.payload, self.root / "output.zip")
         self.assertFalse((self.root / "output.zip").exists())
+
+    def test_unmanifested_browser_state_blocks_distribution(self):
+        (self.payload / "webview2/browser-state.log").write_text("test-created state")
+        with self.assertRaisesRegex(ValueError, "unexpected=.*browser-state.log"):
+            build(self.root / "app.exe", self.payload, self.root / "output.zip")
+        self.assertFalse((self.root / "output.zip").exists())
+
+    def test_native_test_directories_do_not_pollute_release_payload(self):
+        clone = self.root / "native-payload"
+        clone_payload(self.payload, clone)
+        (clone / "webview2/browser-state.log").write_text("test-created state")
+        self.assertFalse((self.payload / "webview2/browser-state.log").exists())
+        self.assertEqual((clone / "stanicode-agent.exe").read_bytes(), self.pe)
+
+    def test_actions_tree_requires_one_extraction_and_matches_checksums(self):
+        directory = self.root / "actions"
+        build(self.root / "app.exe", self.payload, self.root / "fixture-candidate.zip", directory)
+        app = directory / "STANICODE"
+        self.assertTrue((app / "STANICODE.exe").is_file())
+        self.assertFalse(list(directory.rglob("*.zip")))
+        for line in (app / "SHA256SUMS.txt").read_text().splitlines():
+            expected, name = line.split("  ", 1)
+            self.assertEqual(hashlib.sha256((app / name).read_bytes()).hexdigest(), expected)
 
     def test_fixture_archive_layout_and_checksums(self):
         output = build(
