@@ -1,8 +1,8 @@
 # STANICODE
 
-Private, local-first coding desktop application under development. **This checkout is an implemented development slice, not a complete or released offline Windows product.**
+Local-first coding desktop application under development. **This checkout is an implemented development slice, not a complete or released offline Windows product.**
 
-React/TypeScript UI + Tauri 2 shell + standard-library Python backend. The engine inspects a workspace, requests structured actions from local llama-server, requires review before writes and Python test execution, executes real tests, attempts up to three repairs, records events/snapshots in SQLite and supports rollback after restart. Sequential local architect, implementer/debugger and reviewer roles share one model. Italian/English UI includes folder selection, task controls, file comparisons, reports, sessions, local evidence export/deletion and theme settings.
+React/TypeScript UI + Tauri 2 shell + Python backend. The engine inspects a workspace, requests structured actions from local llama-server, requires review before writes and Python test execution, executes real tests, attempts up to three repairs, records events/snapshots in SQLite and supports rollback after restart. Sequential local architect, implementer/debugger and reviewer roles share one model. Italian/English UI includes folder selection, task controls, file comparisons, reports, sessions, local evidence export/deletion and theme settings.
 
 ## Development
 

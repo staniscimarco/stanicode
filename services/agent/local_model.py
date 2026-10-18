@@ -3,8 +3,8 @@
 import json
 import threading
 import urllib.parse
-import http.client
-import socket
+import asyncio
+import httpx
 
 
 class LlamaModel:
@@ -26,8 +26,6 @@ class LlamaModel:
         self.api_key = api_key
         self.serial = threading.Lock()
         self._cancelled = threading.Event()
-        self._socket = None
-        self._socket_lock = threading.Lock()
 
     @property
     def identity(self):
@@ -46,12 +44,45 @@ class LlamaModel:
 
     def cancel(self):
         self._cancelled.set()
-        with self._socket_lock:
-            if self._socket is not None:
-                try:
-                    self._socket.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    pass
+
+    async def _exchange(self, data, headers):
+        async with httpx.AsyncClient(
+            trust_env=False, timeout=httpx.Timeout(300, connect=5)
+        ) as client:
+            async with client.stream(
+                "POST",
+                self.endpoint + "/v1/chat/completions",
+                content=data,
+                headers=headers,
+            ) as response:
+                if response.status_code != 200:
+                    raise RuntimeError(
+                        f"Local inference returned HTTP {response.status_code}"
+                    )
+                body = bytearray()
+                async for chunk in response.aiter_bytes():
+                    body.extend(chunk)
+                    if len(body) > 200000:
+                        raise ValueError("Local model response is too large")
+                return bytes(body)
+
+    async def _cancellable_exchange(self, data, headers):
+        operation = asyncio.create_task(self._exchange(data, headers))
+        try:
+            while not operation.done():
+                if self._cancelled.is_set():
+                    raise InterruptedError("Local inference cancelled")
+                await asyncio.wait({operation}, timeout=0.05)
+            if self._cancelled.is_set():
+                raise InterruptedError("Local inference cancelled")
+            return await operation
+        finally:
+            if not operation.done():
+                operation.cancel()
+            try:
+                await operation
+            except (asyncio.CancelledError, Exception):
+                pass
 
     def chat(self, role, schema, payload):
         system = (
@@ -76,34 +107,7 @@ class LlamaModel:
         if self.api_key:
             headers["Authorization"] = "Bearer " + self.api_key
         with self.serial:
-            connection = http.client.HTTPConnection(
-                "127.0.0.1", urllib.parse.urlsplit(self.endpoint).port, timeout=300
-            )
-            try:
-                connection.connect()
-                with self._socket_lock:
-                    self._socket = connection.sock
-                if self._cancelled.is_set():
-                    raise InterruptedError("Local inference cancelled")
-                connection.request(
-                    "POST", "/v1/chat/completions", body=data, headers=headers
-                )
-                response = connection.getresponse()
-                if response.status != 200:
-                    raise RuntimeError(
-                        f"Local inference returned HTTP {response.status}"
-                    )
-                body = response.read(200001)
-                if len(body) > 200000:
-                    raise ValueError("Local model response is too large")
-            except (OSError, http.client.HTTPException):
-                if self._cancelled.is_set():
-                    raise InterruptedError("Local inference cancelled")
-                raise
-            finally:
-                with self._socket_lock:
-                    self._socket = None
-                connection.close()
+            body = asyncio.run(self._cancellable_exchange(data, headers))
         result = json.loads(json.loads(body)["choices"][0]["message"]["content"])
         if not isinstance(result, dict):
             raise ValueError("Local model must return a JSON object")

@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - name: Initialize actual MSVC compiler/linker and SDK environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
       - run: npm ci --no-fund --no-audit
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m ruff check services tests scripts

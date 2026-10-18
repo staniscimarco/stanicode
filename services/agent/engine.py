@@ -32,6 +32,18 @@ def execution_environment():
         "LC_ALL",
         "CARGO_HOME",
         "RUSTUP_HOME",
+        "LIB",
+        "LIBPATH",
+        "INCLUDE",
+        "VCINSTALLDIR",
+        "VCTOOLSINSTALLDIR",
+        "WINDOWSSDKDIR",
+        "WINDOWSSDKVERSION",
+        "UCRTVERSION",
+        "UNIVERSALCRTSDKDIR",
+        "VSINSTALLDIR",
+        "VSCMD_ARG_TGT_ARCH",
+        "VSCMD_ARG_HOST_ARCH",
     }
     return {key: value for key, value in os.environ.items() if key in names}
 

@@ -41,3 +41,11 @@ A complete editable SVG brand master, full accessibility review, a safe advanced
 ## Network recheck after configuration publication
 
 The environment configuration was subsequently published and contains the required custom domains. Explicit network permission was also granted for the current turn. Nevertheless the running machine still receives proxy CONNECT 403 for api.github.com, huggingface.co and developer.microsoft.com. The standard package-registry control succeeds. Re-saving the same domain list is not the next diagnostic step: the machine/proxy must be reconnected or reprovisioned against the published configuration, or the platform egress-policy mismatch investigated. No model download, Windows execution or completed release is claimed.
+
+## GitHub publication and Windows CI follow-up
+
+After the environment restarted, GitHub API, Hugging Face and Microsoft pages became reachable. The actual GGUF redirect host `us.aws.cdn.hf.co` is still denied by the cloud proxy. Official Windows/Linux llama.cpp b11669 archives and license files were downloaded and their upstream SHA-256 digests verified. Model weights have not yet been downloaded in this machine.
+
+The user explicitly supplied push commands after confirming that the existing repository is public. Source is now on `main` at https://github.com/staniscimarco/stanicode. A request to make the initially empty repository private was rejected by GitHub's integration permissions; it remains public under the subsequent push authorization. No private-visibility claim is made.
+
+GitHub Actions actually ran on Linux and Windows. The first Windows suite exposed incorrect linker selection in a sanitized compiler environment and non-portable cancellation of blocking socket reads. A subsequent change initializes MSVC explicitly, preserves its non-secret SDK/library environment, and uses cancellable asynchronous local HTTP requests. These changes require a new Windows CI result before they are described as verified on Windows. Full installer/portable/real-model acceptance is still pending.
