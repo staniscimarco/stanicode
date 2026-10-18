@@ -62,6 +62,7 @@ def main():
         }
         environment["PATH"] = str(Path(os.environ["SystemRoot"]) / "System32")
         environment["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = f"--remote-debugging-port={port}"
+        environment["STANICODE_NATIVE_ACCEPTANCE"] = "1"
         environment["WEBVIEW2_USER_DATA_FOLDER"] = str(root / "webview-state")
         for tool in ("python", "node", "git", "cargo", "ollama"):
             if shutil.which(tool, path=environment["PATH"]):
@@ -107,6 +108,7 @@ foreach ($program in (Get-Content -LiteralPath $programs -Raw | ConvertFrom-Json
                 diagnostic = root / "startup-diagnostic.ps1"
                 diagnostic.write_text('''$ErrorActionPreference='Continue'
 Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'stanicode|llama|msedgewebview' } | Select-Object Name,ProcessId,ParentProcessId,ExecutablePath | Format-Table -AutoSize
+Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | ForEach-Object { [regex]::Matches($_.CommandLine, '--remote-debugging-[^ ]+') | ForEach-Object { $_.Value } }
 Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State,OwningProcess | Format-Table -AutoSize
 ''', encoding="utf-8")
                 subprocess.run(["pwsh", "-NoProfile", "-File", str(diagnostic)], check=False)

@@ -72,6 +72,14 @@ fn main() {
             }
         }
     }
+    let mut context = tauri::generate_context!();
+    // The same release binary is driven by the native acceptance harness.
+    // Inspector access remains off for ordinary launches.
+    let inspect = cfg!(debug_assertions)
+        || std::env::var("STANICODE_NATIVE_ACCEPTANCE").as_deref() == Ok("1");
+    for window in &mut context.config_mut().app.windows {
+        window.devtools = Some(inspect);
+    }
     let builder = tauri::Builder::default();
     #[cfg(windows)]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
@@ -162,6 +170,6 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![connection])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("STANICODE could not start its native shell");
 }
