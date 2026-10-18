@@ -112,7 +112,7 @@ def main():
     llvm = PAYLOAD / "models/LICENSE-LLVM-OpenMP"
     component("runtime", "LLVM-OpenMP", manifest["runtime"]["version"], "Apache-2.0 WITH LLVM-exception", [llvm] if llvm.exists() else [])
     for name, source, version in (
-        ("Microsoft-WebView2-Runtime", PAYLOAD / "WebView2-runtime-terms.html", "155.0.4283.62"),
+        ("Microsoft-WebView2-Runtime", PAYLOAD / "WebView2-runtime-terms.txt", "155.0.4283.62"),
         ("Microsoft-Visual-C-Runtime", PAYLOAD / "Visual-C-runtime-terms.html", "app-local-release-CRT"),
     ):
         component("runtime", name, version, "Microsoft redistribution terms", [source] if source.exists() else [])
