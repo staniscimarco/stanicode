@@ -218,7 +218,7 @@ export function App() {
     <div className="shell">
       <aside>
         <div className="brand">
-          <img src="/brand.png" alt="STANICODE" />
+          <img src="/brand.svg" alt="STANICODE" />
           <strong>STANICODE</strong>
         </div>
         <p className="eyebrow">LOCAL DEVELOPMENT STUDIO</p>

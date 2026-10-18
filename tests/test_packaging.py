@@ -69,13 +69,18 @@ class Packaging(unittest.TestCase):
         for name in ("THIRD_PARTY_NOTICES.md", "LICENSE"):
             (self.payload / name).write_text("Fixture only")
         (self.payload / "dependency-licenses").mkdir()
+        text = b"Unit-test fixture license; no real software payload"
+        (self.payload / "dependency-licenses/fixture.txt").write_bytes(text)
         (self.payload / "SBOM.cdx.json").write_text(
             json.dumps(
                 {
                     "bomFormat": "CycloneDX",
                     "specVersion": "1.5",
                     "version": 1,
-                    "components": [],
+                    "components": [{
+                        "bom-ref": "fixture-only", "name": "non-executable unit fixture", "version": "0",
+                        "properties": [{"name": "stanicode:license-files", "value": json.dumps([{"file": "dependency-licenses/fixture.txt", "sha256": hashlib.sha256(text).hexdigest()}])}],
+                    }],
                 }
             )
         )
@@ -85,6 +90,16 @@ class Packaging(unittest.TestCase):
         file.write_bytes(b"ELF, not PE")
         with self.assertRaisesRegex(ValueError, "Not a Windows"):
             windows_x64(file)
+
+    def test_empty_dependency_inventory_blocks_distribution(self):
+        (self.payload / "SBOM.cdx.json").write_text(json.dumps({"bomFormat": "CycloneDX", "components": []}))
+        with self.assertRaisesRegex(ValueError, "populated CycloneDX"):
+            build(self.root / "app.exe", self.payload, self.root / "output.zip")
+
+    def test_changed_dependency_license_blocks_distribution(self):
+        (self.payload / "dependency-licenses/fixture.txt").write_text("changed")
+        with self.assertRaisesRegex(ValueError, "license integrity"):
+            build(self.root / "app.exe", self.payload, self.root / "output.zip")
 
     def test_changed_model_hash_is_rejected(self):
         (self.models / "model.gguf").write_bytes(b"changed")

@@ -25,6 +25,7 @@ jobs:
       - run: python scripts/ci_tests.py
       - run: npm run test:ui
       - uses: actions/cache/restore@v4
+        id: model_cache
         with:
           path: |
             .local/downloads
@@ -57,7 +58,7 @@ jobs:
           path: .local/evidence/
           if-no-files-found: ignore
       - uses: actions/cache/save@v4
-        if: always()
+        if: always() && steps.model_cache.outputs.cache-hit != 'true'
         with:
           path: |
             .local/downloads

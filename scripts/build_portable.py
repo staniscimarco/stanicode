@@ -40,7 +40,7 @@ def verify_webview(root):
     expected = {
         p.relative_to(root).as_posix()
         for p in root.rglob("*")
-        if p.is_file() and p.name != "webview2-manifest.json"
+        if p.is_file() and p != root / "webview2-manifest.json"
     }
     if names != expected:
         raise ValueError(
@@ -50,6 +50,25 @@ def verify_webview(root):
         raise ValueError("WebView2 license must be included")
     windows_x64(root / "msedgewebview2.exe")
     return manifest
+
+
+def verify_notices(payload):
+    sbom = json.loads((payload / "SBOM.cdx.json").read_text(encoding="utf-8"))
+    if sbom.get("bomFormat") != "CycloneDX" or not sbom.get("components"):
+        raise ValueError("A populated CycloneDX dependency inventory is required")
+    seen = set()
+    for component in sbom["components"]:
+        reference = component.get("bom-ref")
+        if not reference or reference in seen or not component.get("name") or not component.get("version"):
+            raise ValueError("Invalid or duplicated dependency identity")
+        seen.add(reference)
+        records = next((json.loads(p["value"]) for p in component.get("properties", []) if p.get("name") == "stanicode:license-files"), [])
+        if not records:
+            raise ValueError("Dependency has no actual license text: " + reference)
+        for entry in records:
+            path = (payload / entry["file"]).resolve(strict=True)
+            if not path.is_relative_to(payload / "dependency-licenses") or sha256(path) != entry["sha256"]:
+                raise ValueError("Dependency license integrity mismatch: " + reference)
 
 
 def build(executable, payload, output):
@@ -72,11 +91,7 @@ def build(executable, payload, output):
     ):
         if not (payload / name).exists():
             raise ValueError("Distribution notices missing: " + name)
-    if (
-        json.loads((payload / "SBOM.cdx.json").read_text()).get("bomFormat")
-        != "CycloneDX"
-    ):
-        raise ValueError("CycloneDX SBOM required")
+    verify_notices(payload)
     output.parent.mkdir(parents=True, exist_ok=True)
     # Stream original payload files directly into ZIP64. Copying a 4.7 GB
     # model into another staging tree can exhaust the Windows build disk.

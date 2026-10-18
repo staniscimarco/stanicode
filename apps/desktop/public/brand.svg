@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">STANICODE</title>
+  <desc id="desc">Editable geometric monogram, redrawn from the supplied cyan, blue and violet brand reference.</desc>
+  <defs>
+    <linearGradient id="face" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#9bffff"/><stop offset=".28" stop-color="#17daff"/>
+      <stop offset=".63" stop-color="#2868f7"/><stop offset="1" stop-color="#ee72ff"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2=".25">
+      <stop stop-color="#08bdec"/><stop offset=".55" stop-color="#2232c5"/><stop offset="1" stop-color="#b24bfa"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#61f6ff"/><stop offset=".48" stop-color="#168fee"/><stop offset="1" stop-color="#a641f8"/>
+    </linearGradient>
+    <filter id="glow" x="-.2" y="-.2" width="1.4" height="1.4">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+  <g id="extruded-edges" fill="url(#edge)" stroke="#6155ff" stroke-width="2" stroke-linejoin="round">
+    <path d="M418 143V181L383 202 334 173 337 151 385 170Z"/>
+    <path d="M88 151V240Q88 252 100 259L149 288V257L104 231Z"/>
+    <path d="M247 315 333 265 426 318V351Q426 363 414 370L333 417 333 383 397 344Z"/>
+    <path d="M87 334V365L225 447Q236 454 247 447L330 399V373L236 427Z"/>
+  </g>
+  <g id="luminous-outline" fill="none" stroke="#17daff" stroke-width="7" filter="url(#glow)" opacity=".45">
+    <path d="M91 150 239 64 418 143M88 239 149 273M90 337 237 425 419 321"/>
+  </g>
+  <g id="upper-letterform" fill="url(#face)" stroke="#acffff" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M90 148 232 66Q245 57 258 65L418 143 378 166 283 112Q274 107 265 113L226 136Q218 141 226 147L293 185 313 173 273 151 295 138 331 159Q338 163 337 171V186L286 215Q277 221 267 215L159 154Q147 147 148 133L148 115 98 144Z"/>
+    <path d="M90 148 148 115V133Q148 150 163 159L216 190 160 224Q149 230 149 246V273L99 245Q89 239 89 228Z"/>
+  </g>
+  <g id="central-letterform" fill="url(#core)" stroke="#63ecff" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M225 208 177 237V270Q177 279 185 284L225 308Z"/>
+    <path d="M254 223 314 258Q325 264 315 272L254 308V284L292 263 254 241Z"/>
+    <path d="M228 209 254 223V308L241 316 228 308Z" fill="url(#edge)"/>
+  </g>
+  <g id="lower-letterform" fill="url(#face)" stroke="#acffff" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M252 207 415 302Q427 309 426 322L426 345 373 375V354Q373 339 360 332L319 309 284 329Q277 334 285 340L332 367 332 388 251 435Q238 442 225 434L89 354V334L131 310 235 370 286 370 258 354Q245 347 250 337L257 328 348 275 252 220Z"/>
+    <path d="M89 334 131 310 235 370 286 370 308 382 241 421Q236 424 231 421Z"/>
+  </g>
+</svg>

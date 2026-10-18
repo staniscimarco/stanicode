@@ -1,51 +1,33 @@
-# Development evidence and release blockers
+# STANICODE — verification status
 
-This is implemented application code, **not a completed or accepted Windows release**.
+Updated 18 October 2026. The public source repository is authorized by the owner. The Windows development installer was downloaded and installed by the owner. It does not contain the model and is not the complete offline delivery.
 
-## Implemented
+## Verified
 
-- One local model runs serial architect, implementer/debugger and independent-reviewer roles. The architect plan is passed to implementation. The reviewer can reject a task even when tests pass. Malformed implementation JSON triggers a bounded repair attempt. Cancellation interrupts an in-flight inference socket.
-- File actions require review and approval tied to a unique proposal identifier; stale approval requests are rejected. Portable path rules reject traversal, symlinks, Windows device names, alternate streams, Git internals and common secret paths. Atomic replacement avoids modifying an external hardlink. Concurrent tasks and rollback/write races are rejected.
-- Optional Git recovery refs preserve the user's index; file snapshots support rollback without resetting unrelated work. Unfinished approvals are marked interrupted on restart. Write-ahead snapshots recover both sides of an interrupted file replacement.
-- Fixed validation recipes cover bundled Python unittest, Node tests, project npm test scripts and offline Cargo tests. Missing project toolchains have explicit diagnostics; STANICODE itself does not require Node or Cargo at launch. No dependency installation is performed by these recipes.
-- Validation output is bounded in memory. Linux process groups are cleaned up on cancellation/timeout/exit. A Windows Job Object implementation is present but remains untested on Windows. These mechanisms are process lifecycle controls, not an OS sandbox.
-- SQLite FTS retrieves deduplicated, test-backed cases before planning; provenance records model/runtime identity and patch hashes. Cases are saved only after passing validation and independent review. Root-cause text remains a model hypothesis. Memory can be searched, exported and deleted; weights are not trained or changed.
-- Authenticated loopback backend with random session token, allowed Origin and exact Host checks. Generated code does not inherit injected API/GitHub credentials. Task snapshots still contain private source; the local database must be protected.
-- Shared startup/package verifier checks runtime/model/companion hashes, source/version/license metadata and declared RAM requirements. Inference uses a random loopback port and per-launch API key. Startup detects a missing bundle and monitors runtime exit.
-- Italian/English React UI includes folder selection, task controls, file comparisons, events, sessions, report export, searchable memory and dark/light themes. Native Tauri shell starts the standalone backend. Raster branding and ICO sizes derive from supplied assets.
-- ZIP64 assembly validates Windows x64 PE headers, actual GGUF magic, model/runtime hashes, companion libraries and the complete fixed WebView2 file hash inventory. It requires license/SBOM staging and produces only an unaccepted candidate. It never relabels a Linux binary as Windows or downloads missing components at end-user startup.
+- GitHub Actions run [39105314504](https://github.com/staniscimarco/stanicode/actions/runs/39105314504) passed on Linux and Windows, including backend tests, UI tests/build, dependency audit, Windows standalone backend smoke and native NSIS installer compilation.
+- The current backend suite contains 40 tests. All 40 passed locally, including actual Python/Node/Rust validation, Windows path rules, nested context, malformed action recovery, approval nonces, independent-review rejection, verified memory, persistence/rollback, process cancellation/timeout and packaging integrity. Windows and Linux CI rerun the suite for changes.
+- Four React tests and the production TypeScript/Vite build passed. The Chromium integration test exercises the actual UI/backend/files/tests with an explicitly simulated model and native bridge; it is not Windows/model acceptance.
+- Official Qwen2.5-Coder-7B-Instruct Q4_K_M weights were actually acquired on a Windows runner and matched the pinned upstream SHA-256. The llama.cpp b11669 CPU archive also matched its upstream digest; app-local Microsoft CRT DLL signatures were checked.
+- Microsoft's fixed WebView2 155.0.4283.62 was obtained from the official download page and its executable's Microsoft signature validated. Its first verified archive hash is pinned for subsequent builds.
+- In real-model run [39107807819](https://github.com/staniscimarco/stanicode/actions/runs/39107807819), the model planned and generated two files and the backend applied them after explicit approval in a disposable workspace. The subsequent actual validation timed out. This run **failed**, and does not establish working end-to-end generation.
 
-## Actual local evidence
+## Work in progress
 
-- **39 Python tests passed**, including real Python, Node and Rust test executions; role protocol over a local HTTP fixture; independent-review rejection; retrieval/dedup/deletion; Git index preservation; traversal/Windows paths/hardlinks; process timeout/cancel/output limits; and packaging integrity/container fixtures.
-- **4 UI component tests passed** with native/HTTP mocks.
-- **Real system Chromium acceptance passed** through the actual UI and authenticated backend: folder selection through a native bridge fixture, request, approval, real file writes, actual Python unittest, reviewer fixture, memory search, JSON report download, locale/theme and rollback. Inference and native selection/bootstrap were simulated in this check; it is not real-model or Windows acceptance.
-- TypeScript and Vite production build passed. Full npm audit reported zero known advisories in the installed tree. Ruff checks passed. This is not proof of complete application security.
-- **Native Linux `cargo check --locked --jobs 2` passed** after extracting 131 signature/checksum-verified Debian packages into `/workspace/.stanicode-tools/linux-sysroot`. System files were not installed or modified. This compiles/checks the Tauri source; it does not prove a linked GUI executable runs.
-- A standalone Linux backend was built and tested. Its packaged interpreter ran a real project unittest; authenticated health correctly rejected missing inference; parent-close shutdown passed. No Windows conclusion follows from that Linux result.
-- Packaging tests use explicitly labeled, non-executable PE/GGUF container fixtures. No test fixture is a distributable product or real model.
+The complete Windows workflow diagnoses frozen-interpreter startup while the actual model occupies memory, preserves inference diagnostics, inventories upstream license texts and compiles the native desktop. An actual native UI acceptance script drives the Windows folder picker, real local inference, file approvals, test execution, report export, locale/theme and restart history. It hides developer tools from the product PATH and applies outbound Windows Firewall blocks. These are executable checks, not evidence that they have passed.
 
-## Confirmed external blockers
+The ZIP64 assembler streams multi-GB model files directly, verifies PE architecture, GGUF header, model/runtime/support hashes and complete fixed-WebView inventory. License texts and CycloneDX SBOM are mandatory. Container fixtures used by unit tests are explicitly non-executable and never distributed as a product.
 
-- The running cloud machine still receives proxy **403 Forbidden** for `api.github.com`, `huggingface.co`, `cdn.playwright.dev` and the official `developer.microsoft.com` WebView2 page. Saved draft network rules are not evidence that runtime access was applied.
-- No actual inference weights/runtime or fixed Windows WebView2 payload could be obtained and validated. Exact model suitability, licensing, RAM/performance and real tool-use reliability remain unproven. Task creation correctly stays disabled without real inference readiness.
-- No Windows machine/runner is attached or executed. Windows compile/link, Job Object behavior, portable startup, no-prerequisite offline acceptance, signing and installer behavior remain unvalidated.
-- Git read access works. GitHub API account/privacy verification and Actions access remain blocked. No source push, CI success, tag, release URL or downloadable Windows app is claimed. User preference is to complete local development before publication.
+## Remaining delivery gates
 
-## Remaining release requirements
+- Diagnose and pass actual-model validation with the frozen backend.
+- Pass actual native Windows/offline UI acceptance and restart recovery.
+- Identify and include the correct Microsoft runtime redistribution terms and complete transitive notices/SBOM. The WebView2 SDK license does not replace its runtime terms.
+- Assemble and verify the complete extract-and-run archive; publish its actual URL, size and SHA-256 only after it exists.
+- A hosted Windows runner has development software installed. Hiding its PATH does not prove a fresh Windows 10/11 VM has no missing system dependencies. Dedicated clean-machine acceptance remains a separate requirement.
+- Signing credentials are absent. Binaries are unsigned and may trigger SmartScreen.
 
-Run `scripts/smoke_real_inference.py` on the actual packaged backend and licensed model. Build and inspect the Windows portable candidate, include a verified fixed WebView2 runtime, dependency license texts and complete CycloneDX SBOM, then execute clean Windows native/offline acceptance before any release. The current assembler checks structure/integrity, not runtime correctness or legal sufficiency.
+## Product boundaries
 
-A complete editable SVG brand master, full accessibility review, a safe advanced Ollama integration, stronger project isolation and comprehensive real-model regressions remain unfinished. Training/merging research modules are deliberately deferred until the baseline release works, as the supplied specification requires. No production-readiness claim is made. See RELEASE_CHECKLIST.md.
+File writes require review; fixed validation recipes execute workspace code with the user's permissions. Process lifecycle controls are not a filesystem/network sandbox. Task history can contain private source and must remain protected locally. Local memory retrieves test-backed cases and does not train model weights. No cloud AI/account/subscription is required by the core architecture.
 
-## Network recheck after configuration publication
-
-The environment configuration was subsequently published and contains the required custom domains. Explicit network permission was also granted for the current turn. Nevertheless the running machine still receives proxy CONNECT 403 for api.github.com, huggingface.co and developer.microsoft.com. The standard package-registry control succeeds. Re-saving the same domain list is not the next diagnostic step: the machine/proxy must be reconnected or reprovisioned against the published configuration, or the platform egress-policy mismatch investigated. No model download, Windows execution or completed release is claimed.
-
-## GitHub publication and Windows CI follow-up
-
-After the environment restarted, GitHub API, Hugging Face and Microsoft pages became reachable. The actual GGUF redirect host `us.aws.cdn.hf.co` is still denied by the cloud proxy. Official Windows/Linux llama.cpp b11669 archives and license files were downloaded and their upstream SHA-256 digests verified. Model weights have not yet been downloaded in this machine.
-
-The user explicitly supplied push commands after confirming that the existing repository is public. Source is now on `main` at https://github.com/staniscimarco/stanicode. A request to make the initially empty repository private was rejected by GitHub's integration permissions; it remains public under the subsequent push authorization. No private-visibility claim is made.
-
-GitHub Actions actually ran on Linux and Windows. The first Windows suite exposed incorrect linker selection in a sanitized compiler environment and non-portable cancellation of blocking socket reads. A subsequent change initializes MSVC explicitly, preserves its non-secret SDK/library environment, and uses cancellable asynchronous local HTTP requests. These changes require a new Windows CI result before they are described as verified on Windows. Full installer/portable/real-model acceptance is still pending.
+The editable vector brand master, advanced Ollama integration and experimental dataset/LoRA/merge preparation remain separate unfinished requirements; research execution must not be faked or block the baseline app. See [Windows delivery](WINDOWS_DELIVERY.md) and [release checklist](../RELEASE_CHECKLIST.md). No completed release is claimed while the gates above remain open.
