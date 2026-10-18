@@ -117,7 +117,7 @@ def build(executable, payload, output, artifact_directory=None):
     pending = output.with_suffix(output.suffix + ".tmp")
     try:
         with zipfile.ZipFile(pending, "w", compression=zipfile.ZIP_DEFLATED,
-                             compresslevel=1, allowZip64=True) as archive:
+                             compresslevel=1, allowZip64=True, strict_timestamps=False) as archive:
             for path, name in entries:
                 # Quantized weights scarcely compress; storing them saves CPU.
                 kind = zipfile.ZIP_STORED if path.suffix == ".gguf" else zipfile.ZIP_DEFLATED

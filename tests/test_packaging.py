@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import struct
 import sys
@@ -140,6 +141,15 @@ class Packaging(unittest.TestCase):
         for line in (app / "SHA256SUMS.txt").read_text().splitlines():
             expected, name = line.split("  ", 1)
             self.assertEqual(hashlib.sha256((app / name).read_bytes()).hexdigest(), expected)
+
+    def test_vendor_files_with_pre_1980_dates_keep_verified_contents(self):
+        path = self.models / "LICENSE.txt"
+        original = path.read_bytes()
+        os.utime(path, (0, 0))
+        output = build(self.root / "app.exe", self.payload, self.root / "fixture-old-date.zip")
+        with zipfile.ZipFile(output) as archive:
+            self.assertEqual(archive.read("STANICODE/payload/models/LICENSE.txt"), original)
+            self.assertGreaterEqual(archive.getinfo("STANICODE/payload/models/LICENSE.txt").date_time[0], 1980)
 
     def test_fixture_archive_layout_and_checksums(self):
         output = build(
