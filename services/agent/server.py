@@ -154,18 +154,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--parent-stdin", action="store_true")
     parser.add_argument("--data", default=str(Path.home() / ".stanicode"))
+    parser.add_argument("--ollama-model", help="Advanced: use this already installed local Ollama model instead of the bundled runtime")
     parser.add_argument(
         "--bundle", default=str(Path(__file__).resolve().parents[2] / "models")
     )
     args = parser.parse_args()
-    runtime = Runtime(args.bundle, Path(args.data) / "inference.log")
+    if args.ollama_model:
+        from ollama import OllamaModel, OllamaRuntime
+        runtime = OllamaRuntime(args.ollama_model)
+        model = OllamaModel(runtime)
+    else:
+        runtime = Runtime(args.bundle, Path(args.data) / "inference.log")
+        model = LlamaModel(endpoint=runtime.endpoint, api_key=runtime.api_key, metadata=lambda: runtime.provenance)
     engine = Engine(
         Store(Path(args.data) / "tasks.sqlite3"),
-        LlamaModel(
-            endpoint=runtime.endpoint,
-            api_key=runtime.api_key,
-            metadata=lambda: runtime.provenance,
-        ),
+        model,
     )
     token = secrets.token_urlsafe(32)
     server = make_server(engine, token, runtime)

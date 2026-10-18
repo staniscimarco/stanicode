@@ -102,7 +102,8 @@ class Runtime:
                 if self.process.poll() is not None:
                     raise RuntimeError(f"Inference process exited before readiness (code {self.process.returncode}); see inference.log")
                 try:
-                    with urllib.request.urlopen(
+                    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                    with opener.open(
                         urllib.request.Request(
                             self.endpoint + "/v1/models",
                             headers={"Authorization": "Bearer " + self.api_key},

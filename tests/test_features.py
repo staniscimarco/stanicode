@@ -424,6 +424,8 @@ class Features(unittest.TestCase):
             self.assertEqual(file.read_text(), "before")
 
     def test_redacts_common_secret_assignments(self):
+        value = redact('{"api_key": "do-not-retain", "token": "private-token"}')
+        self.assertEqual(json.loads(value), {"api_key": "[REDACTED]", "token": "[REDACTED]"})
         self.assertEqual(redact("password=hunter2"), "password=[REDACTED]")
 
 

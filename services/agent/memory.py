@@ -8,8 +8,8 @@ import time
 
 def redact(text):
     return re.sub(
-        r"(?i)\b(api[_ -]?key|password|secret|token)\s*[:=]\s*[\"\']?[^\s,;\"\']+",
-        r"\1=[REDACTED]",
+        r"(?i)\b(api[_ -]?key|password|secret|token)\b([\"\']?\s*[:=]\s*[\"\']?)[^\s,;\"\']+",
+        r"\1\2[REDACTED]",
         str(text),
     )
 

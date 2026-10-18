@@ -43,7 +43,7 @@ def main():
     evidence.mkdir(parents=True, exist_ok=True)
     port = 19222
     with tempfile.TemporaryDirectory(prefix="stanicode-native-") as directory:
-        root = Path(directory)
+        root = Path(directory).resolve()
         workspace = root / "workspace"
         workspace.mkdir()
         executable = root / "STANICODE.exe"
@@ -77,7 +77,7 @@ if ($mode -eq 'remove') {
 }
 if (Get-NetFirewallProfile | Where-Object { -not $_.Enabled }) { throw 'Windows firewall is not enabled' }
 foreach ($program in (Get-Content -LiteralPath $programs -Raw | ConvertFrom-Json)) {
-  New-NetFirewallRule -DisplayName ($group+' '+[IO.Path]::GetFileName($program)) -Group $group -Direction Outbound -Action Block -Program $program -RemoteAddress @('0.0.0.0-126.255.255.255','128.0.0.0-255.255.255.255','::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff') | Out-Null
+  New-NetFirewallRule -DisplayName ($group+' '+[IO.Path]::GetFileName($program)) -Group $group -Direction Outbound -Action Block -Program $program -RemoteAddress @('0.0.0.0/2','64.0.0.0/3','96.0.0.0/4','112.0.0.0/5','120.0.0.0/6','124.0.0.0/7','126.0.0.0/8','128.0.0.0/1','::/0') | Out-Null
 }
 ''', encoding="utf-8")
         programs = root / "firewall-programs.json"
@@ -131,6 +131,11 @@ foreach ($program in (Get-Content -LiteralPath $programs -Raw | ConvertFrom-Json
                     "Create calculator.py with add(a,b), and test_calculator.py using Python unittest checking add(2,3)==5 and add(-2,2)==0. Use python-unittest. No dependencies."
                 )
                 expect(start).to_be_enabled(timeout=360000)
+                second = subprocess.Popen([str(executable)], env=environment)
+                second.wait(timeout=15)
+                if second.returncode != 0 or app.poll() is not None:
+                    raise AssertionError("Second launch did not focus the existing instance")
+                report["single_instance"] = True
                 start.click()
                 deadline = time.monotonic() + 1800
                 approved = 0

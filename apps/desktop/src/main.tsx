@@ -27,7 +27,12 @@ type Task = {
 };
 type Health = {
   backend: boolean;
-  inference: { ready: boolean; phase?: string; detail: string };
+  inference: {
+    ready: boolean;
+    phase?: string;
+    provider?: string;
+    detail: string;
+  };
 };
 const words = {
   it: {
@@ -249,7 +254,7 @@ export function App() {
         <div className="sidebar-bottom">
           <span className={"dot " + (health?.inference.ready ? "ready" : "")} />
           <span role="status">{modelStatus}</span>
-          <small>v0.1.0-dev · CPU / local</small>
+          <small>v0.1.0-dev · local</small>
         </div>
       </aside>
       <main>
@@ -364,9 +369,13 @@ export function App() {
                 : "Candidate under validation"}
             </p>
             <p>
-              {lang === "it"
-                ? "Modello locale Qwen2.5-Coder 7B Q4_K_M · llama.cpp · CPU. Nessun abbonamento, account o servizio AI cloud."
-                : "Local Qwen2.5-Coder 7B Q4_K_M model · llama.cpp · CPU. No subscription, account or cloud AI service."}
+              {health?.inference.provider === "ollama"
+                ? lang === "it"
+                  ? "Adattatore Ollama locale avanzato: modello già installato e scelto dall’utente."
+                  : "Advanced local Ollama adapter: an existing user-selected model."
+                : lang === "it"
+                  ? "Modello locale Qwen2.5-Coder 7B Q4_K_M · llama.cpp · CPU. Nessun abbonamento, account o servizio AI cloud."
+                  : "Local Qwen2.5-Coder 7B Q4_K_M model · llama.cpp · CPU. No subscription, account or cloud AI service."}
             </p>
             <p>
               {lang === "it"

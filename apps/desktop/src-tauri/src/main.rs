@@ -72,7 +72,16 @@ fn main() {
             }
         }
     }
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(windows)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+    }));
+    builder
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let data = app.path().app_local_data_dir()?;
@@ -108,6 +117,11 @@ fn main() {
                 .arg("--bundle")
                 .arg(bundle)
                 .arg("--parent-stdin");
+            // Expert opt-in only. The ordinary launcher always uses its bundle;
+            // the adapter never downloads or installs an external service/model.
+            if let Ok(model) = std::env::var("STANICODE_ADVANCED_OLLAMA_MODEL") {
+                command.arg("--ollama-model").arg(model);
+            }
             command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())

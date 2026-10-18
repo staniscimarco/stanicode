@@ -60,6 +60,31 @@ def acquire_credits(destination):
             browser.close()
 
 
+def acquire_crt_terms(payload):
+    """Extract the actual EULA from Microsoft's signature-verified redist."""
+    archive = download("https://aka.ms/vs/17/release/vc_redist.x64.exe", ".local/downloads/vc_redist.x64.exe")
+    verify_microsoft(archive)
+    with tempfile.TemporaryDirectory(prefix="stanicode-crt-license-") as directory:
+        wix = Path(os.environ.get("WIX", "C:/Program Files (x86)/WiX Toolset v3.14")) / "bin/dark.exe"
+        dark = shutil.which("dark.exe") or (str(wix) if wix.is_file() else None)
+        if dark:
+            subprocess.run([dark, "-nologo", "-x", directory, str(archive.resolve()), "-o", str(Path(directory) / "bundle.wxs")], check=True, stdout=subprocess.DEVNULL)
+        else:
+            subprocess.run(["7z", "x", "-y", "-o" + directory, str(archive.resolve())], check=True, stdout=subprocess.DEVNULL)
+        candidates = []
+        for path in Path(directory).rglob("*"):
+            if not path.is_file() or path.stat().st_size > 2 * 1024**2:
+                continue
+            data = path.read_bytes()
+            if data.startswith(b"{\\rtf") and b"MICROSOFT" in data.upper() and b"LICENSE" in data.upper():
+                candidates.append((path, data))
+        if not candidates:
+            raise RuntimeError("Signed VC redist did not yield an actual license RTF; extracted files: " + ", ".join(p.name for p in Path(directory).rglob("*") if p.is_file())[:2000])
+        for index, (_, data) in enumerate(candidates):
+            (payload / f"Visual-C-runtime-terms-{index}.rtf").write_bytes(data)
+        return {"source": "https://aka.ms/vs/17/release/vc_redist.x64.exe", "signed_installer_sha256": digest(archive), "license_documents": len(candidates)}
+
+
 def main():
     if os.name != "nt":
         raise RuntimeError("Fixed Windows runtime preparation requires Windows")
@@ -113,14 +138,15 @@ def main():
                 visible = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", "", text, flags=re.I | re.S)
                 visible = html.unescape(re.sub(r"<[^>]+>", "\n", visible))
                 visible = re.sub(r"\n\s*\n+", "\n", visible)
-                heading = re.search(r"MICROSOFT SOFTWARE LICENSE TERMS", visible, re.I)
+                heading = re.search(r"MICROSOFT\s+SOFTWARE\s+LICENSE\s+TERMS", visible, re.I)
                 if heading:
                     terms = visible[heading.start():]
                     (payload / (label + ".txt")).write_text(terms, encoding="utf-8")
                     inspection[label]["actual_terms_excerpt"] = terms[:2400]
                 else:
-                    links = re.findall(r'(?:href|src)=["\x27]([^"\x27]+\.(?:rtf|pdf|txt)(?:\?[^"\x27]*)?)["\x27]', text, re.I)
+                    links = re.findall(r'(?:href|src|data)\s*=\s*["\x27]([^"\x27]+\.(?:rtf|pdf|txt)(?:[?#][^"\x27]*)?)["\x27]', text, re.I)
                     inspection[label]["license_download_links"] = links
+                    inspection[label]["visible_page_excerpt"] = visible[-7000:]
                     for link in links:
                         resolved = urllib.parse.urljoin(response.url, html.unescape(link))
                         if urllib.parse.urlsplit(resolved).hostname != "visualstudio.microsoft.com":
@@ -136,6 +162,11 @@ def main():
         except Exception as error:
             inspection[label] = {"error": str(error)}
     redist = Path(os.environ["VCToolsRedistDir"])
+    if not any(payload.glob("Visual-C-runtime-terms.txt")) and not any(payload.glob("Visual-C-runtime-terms.rtf")):
+        try:
+            inspection["signed_crt_redist_license"] = acquire_crt_terms(payload)
+        except Exception as error:
+            inspection["crt_redist_license_error"] = str(error)
     inspection["crt_license_candidates"] = [str(p) for p in redist.parent.rglob("*") if p.is_file() and re.search(r"license|eula", p.name, re.I)][:25]
     evidence = Path(".local/evidence/runtime-acquisition.json")
     evidence.parent.mkdir(parents=True, exist_ok=True)

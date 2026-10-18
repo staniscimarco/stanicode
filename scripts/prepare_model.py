@@ -45,11 +45,11 @@ def download(url, destination, expected=None):
 
 def verify_microsoft(path):
     # Paths are passed as arguments, never interpolated into PowerShell source.
-    script = "param([string]$file)\n$ErrorActionPreference='Stop'\nImport-Module Microsoft.PowerShell.Security\n$s=Get-AuthenticodeSignature -LiteralPath $file\nif($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw ('Invalid Microsoft signature: '+$file+' ('+$s.Status+')') }"
+    script = "param([string]$file)\n$ErrorActionPreference='Stop'\nImport-Module Microsoft.PowerShell.Security\n$s=Get-AuthenticodeSignature -LiteralPath $file\nif($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw ('Invalid Microsoft signature: '+$file+' ('+$s.Status+')') }\n(Get-Item -LiteralPath $file).VersionInfo.ProductVersion"
     with tempfile.TemporaryDirectory(prefix="stanicode-signature-") as directory:
         command = Path(directory) / "verify.ps1"
         command.write_text(script, encoding="utf-8")
-        subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-File", str(command), str(Path(path).resolve())], check=True)
+        return subprocess.check_output(["pwsh", "-NoProfile", "-NonInteractive", "-File", str(command), str(Path(path).resolve())], text=True, encoding="utf-8").strip()
 
 
 def prepare(destination, cache):
@@ -83,10 +83,13 @@ def prepare(destination, cache):
     candidates = list((redist / "x64").glob("Microsoft.VC*.CRT"))
     if len(candidates) != 1:
         raise RuntimeError("Cannot uniquely locate the licensed x64 release CRT")
+    crt_versions = {}
     for source in candidates[0].glob("*.dll"):
-        verify_microsoft(source)
+        crt_versions[source.name] = verify_microsoft(source)
         shutil.copy2(source, destination / source.name)
     manifest = {
+        "crt": {"version": crt_versions.get("msvcp140.dll", next(iter(crt_versions.values()))), "file_versions": crt_versions,
+                "source": "Microsoft Visual Studio release redistributable x64 CRT directory", "license_source": "https://aka.ms/vs/17/release/vc_redist.x64.exe"},
         "runtime": {
             "file": "llama-server.exe", "sha256": digest(destination / "llama-server.exe"),
             "version": "b11669", "source": LLAMA_URL, "license": "MIT",
