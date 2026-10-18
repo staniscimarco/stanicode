@@ -213,6 +213,22 @@ Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Obj
                 browser.close()
                 browser = None
                 print("PASS: actual Windows UI, actual folder picker, real local model, approved writes, real tests, export, locale/theme and restart history; developer PATH hidden.")
+        except Exception:
+            # CI workspaces contain only this disposable fixture. Never dump
+            # process arguments (the model process carries its API key).
+            if browser:
+                try:
+                    print("Native UI failure state:\n" + browser.contexts[0].pages[0].locator("body").inner_text(timeout=3000)[-10000:], flush=True)
+                except Exception:
+                    pass
+            try:
+                for window in Desktop(backend="win32").windows(class_name="#32770"):
+                    print("Native dialog: " + repr((window.process_id(), window.window_text())), flush=True)
+                    if app and window.process_id() == app.pid:
+                        print("App dialog controls: " + repr([control.window_text() for control in window.descendants()])[-4000:], flush=True)
+            except Exception:
+                pass
+            raise
         finally:
             (evidence / "native-windows.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
             if browser:
