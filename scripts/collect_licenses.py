@@ -88,7 +88,7 @@ def main():
     rust_root = Path(subprocess.check_output(["rustc", "--print", "sysroot"], text=True).strip())
     rust_version = subprocess.check_output(["rustc", "--version"], text=True).split()[1]
     component("runtime", "Rust-standard-library", rust_version, "MIT OR Apache-2.0", license_files(rust_root / "share/doc/rust/licenses"))
-    cargo = json.loads(subprocess.check_output(["cargo", "metadata", "--locked", "--format-version", "1", "--filter-platform", "x86_64-pc-windows-msvc", "--manifest-path", str(ROOT / "apps/desktop/src-tauri/Cargo.toml")], text=True))
+    cargo = json.loads(subprocess.check_output(["cargo", "metadata", "--locked", "--format-version", "1", "--filter-platform", "x86_64-pc-windows-msvc", "--manifest-path", str(ROOT / "apps/desktop/src-tauri/Cargo.toml")], text=True, encoding="utf-8"))
     nodes = {node["id"]: node for node in cargo["resolve"]["nodes"]}
     reachable, pending = set(), [cargo["resolve"]["root"]]
     while pending:

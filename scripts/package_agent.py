@@ -16,13 +16,13 @@ subprocess.run(
         "PyInstaller",
         "--noconfirm",
         "--clean",
-        "--onefile",
+        "--onedir",
         "--name",
         "stanicode-agent",
         "--paths",
         str(root / "services" / "agent"),
         "--distpath",
-        str(out),
+        str(root / ".local" / "frozen"),
         "--workpath",
         str(root / ".local" / "pyinstaller"),
         "--specpath",
@@ -35,6 +35,13 @@ subprocess.run(
         "PYINSTALLER_CONFIG_DIR": str(root / ".local" / "pyinstaller-cache"),
     },
 )
+# A directory sidecar avoids re-extracting the interpreter for each approved
+# test process and avoids depending on onefile bootloader environment state.
+# The user still receives one complete application archive.
+internal = out / "_internal"
+if internal.exists():
+    shutil.rmtree(internal)
+shutil.copytree(root / ".local" / "frozen" / "stanicode-agent", out, dirs_exist_ok=True)
 # Preserve verification notices from source; no credential files are copied.
 for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
     shutil.copy2(root / name, out / name)

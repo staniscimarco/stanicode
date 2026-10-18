@@ -83,6 +83,7 @@ def run(command, cwd, environment, cancel=lambda: False, timeout=30):
         command,
         cwd=cwd,
         env=environment,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         start_new_session=os.name != "nt",
@@ -111,7 +112,8 @@ def run(command, cwd, environment, cancel=lambda: False, timeout=30):
             if cancel():
                 raise InterruptedError("Validation cancelled")
             if time.monotonic() - start > timeout:
-                raise TimeoutError("Validation timed out")
+                captured = b"".join(chunks.copy())[-4000:].decode("utf-8", errors="replace")
+                raise TimeoutError("Validation timed out" + ("\n" + captured if captured else ""))
             time.sleep(0.03)
     finally:
         if os.name != "nt":

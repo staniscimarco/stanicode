@@ -68,6 +68,33 @@ class Features(unittest.TestCase):
         self.assertEqual(task["state"], "completed", task)
         self.assertTrue(any("# tests 1" in e["message"] for e in task["events"]))
 
+    def test_validation_timeout_reaches_debugger_and_requires_new_approval(self):
+        import runner
+        actual_run = runner.run
+        calls, feedback = [], []
+        model = MockModel()
+        generate = model.generate
+
+        def propose(prompt, context, previous):
+            feedback.append(previous)
+            return generate(prompt, context, previous)
+
+        def validate(*args, **kwargs):
+            calls.append(1)
+            if len(calls) == 1:
+                raise TimeoutError("Validation timed out: generated test hung")
+            return actual_run(*args, **kwargs)
+
+        model.generate = propose
+        engine = Engine(self.store, model)
+        with patch("runner.run", side_effect=validate):
+            task = engine.create(self.workspace, "Create tested addition")
+            self.finish(engine, task)
+        self.assertEqual(task["state"], "completed", task)
+        self.assertEqual(len(calls), 2)
+        self.assertIn("timed out", feedback[1])
+        self.assertEqual(sum(e["phase"] == "approval" for e in task["events"]), 2)
+
     def test_cargo_recipe_runs_real_rust_test(self):
         if not shutil.which("cargo"):
             self.skipTest("Rust not installed")

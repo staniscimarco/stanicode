@@ -429,12 +429,17 @@ class Engine:
                     + " (30s limit; dependencies are not installed)",
                 )
                 # Tests are arbitrary workspace code; user approved this exact operation above.
-                returncode, output = runner.run(
-                    command,
-                    ws.root,
-                    execution_environment(),
-                    cancel=lambda: self.controls[task["id"]]["cancel"],
-                )
+                try:
+                    returncode, output = runner.run(
+                        command,
+                        ws.root,
+                        execution_environment(),
+                        cancel=lambda: self.controls[task["id"]]["cancel"],
+                    )
+                except TimeoutError as error:
+                    # A generated test may hang; keep the bounded repair loop
+                    # and require approval again rather than abandoning repair.
+                    returncode, output = 124, str(error)
                 previous = output[-6000:]
                 self.emit(task, "test", previous)
                 if validation.passed(recipe, returncode, output):
