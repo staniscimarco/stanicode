@@ -349,8 +349,8 @@ export function App() {
             <p>{health?.inference.detail}</p>
             <p>
               {lang === "it"
-                ? "Nessuna chiave cloud. Nessuna telemetria. Il modello e il runtime devono essere inclusi nel pacchetto verificato."
-                : "No cloud keys. No telemetry. A verified model and runtime must be included in the bundle."}
+                ? "Nessuna chiave cloud e nessuna telemetria applicativa. Il modello e il runtime sono avviati localmente dal pacchetto completo."
+                : "No cloud keys or application telemetry. The complete package starts its model and runtime locally."}
             </p>
           </section>
         ) : tab === "about" ? (
@@ -378,6 +378,9 @@ export function App() {
                 ? "Licenze e inventario delle dipendenze sono inclusi nel pacchetto completo."
                 : "Licenses and dependency inventory are included in the complete package."}
             </p>
+            <p>{lang === "it"
+              ? "Microsoft WebView2 include Defender SmartScreen e può raccogliere e inviare dati di utilizzo a Microsoft secondo le condizioni incluse e https://aka.ms/privacy. Il lavoro AI locale funziona anche senza Internet."
+              : "Microsoft WebView2 includes Defender SmartScreen and may collect and send usage information to Microsoft under its included terms and https://aka.ms/privacy. The local AI workflow also works without Internet."}</p>
           </section>
         ) : tab === "memory" ? (
           <section className="panel">
