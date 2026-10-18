@@ -7,6 +7,9 @@ import json
 from pathlib import Path
 import secrets
 import threading
+from urllib.parse import urlsplit, parse_qs
+import validation
+from resources import diagnostics
 from engine import Engine, LlamaModel, Store
 from runtime import Runtime
 
@@ -67,24 +70,36 @@ def make_server(engine, token, runtime, port=0):
         def do_GET(self):
             if not self.allowed():
                 return
-            if self.path == "/health":
-                self.respond(200, {"backend": True, "inference": runtime.status})
+            url = urlsplit(self.path)
+            if url.path == "/health":
+                self.respond(
+                    200,
+                    {
+                        "backend": True,
+                        "inference": runtime.status,
+                        "validation_recipes": validation.tools(),
+                        "resources": diagnostics(),
+                    },
+                )
             elif self.path == "/tasks":
                 tasks = engine.store.history()
                 for t in tasks:
                     c = engine.controls.get(t["id"])
+                    t["approval_id"] = (
+                        c["approval_id"]
+                        if c and t["state"] == "awaiting_approval"
+                        else None
+                    )
                     t["pending"] = (
                         c["pending"]
                         if c and t["state"] == "awaiting_approval"
                         else None
                     )
                 self.respond(200, tasks)
-            elif self.path == "/memory":
-                with engine.store.connect() as db:
-                    rows = list(
-                        db.execute("SELECT task,symptom,evidence FROM knowledge")
-                    )
-                self.respond(200, rows)
+            elif url.path == "/memory":
+                self.respond(
+                    200, engine.memory.search(parse_qs(url.query).get("query", [""])[0])
+                )
             else:
                 self.respond(404, {"error": "Not found"})
 
@@ -106,12 +121,11 @@ def make_server(engine, token, runtime, port=0):
                     self.respond(201, {"id": task["id"]})
                     return
                 if self.path == "/memory/delete":
-                    with engine.store.connect() as db:
-                        db.execute("DELETE FROM knowledge")
+                    engine.memory.delete()
                     self.respond(200, {"ok": True})
                     return
                 if self.path == "/control":
-                    engine.control(body["id"], body["action"])
+                    engine.control(body["id"], body["action"], body.get("approval_id"))
                 elif self.path == "/rollback":
                     engine.rollback(body["id"])
                 else:
@@ -146,7 +160,12 @@ def main():
     args = parser.parse_args()
     runtime = Runtime(args.bundle)
     engine = Engine(
-        Store(Path(args.data) / "tasks.sqlite3"), LlamaModel(api_key=runtime.api_key)
+        Store(Path(args.data) / "tasks.sqlite3"),
+        LlamaModel(
+            endpoint=runtime.endpoint,
+            api_key=runtime.api_key,
+            metadata=lambda: runtime.provenance,
+        ),
     )
     token = secrets.token_urlsafe(32)
     server = make_server(engine, token, runtime)
@@ -158,6 +177,10 @@ def main():
             import sys
 
             sys.stdin.buffer.read()
+            for control in engine.controls.values():
+                control["cancel"] = True
+            for worker in engine.workers.values():
+                worker.join(timeout=3)
             runtime.stop()
             server.shutdown()
 

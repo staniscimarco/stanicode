@@ -5,9 +5,10 @@
 - [ ] Runtime/model pinned, licensed, independently verified and bundled
 - [ ] Real inference creates and validates a project through packaged desktop
 - [ ] Crash/cancel/process-tree and filesystem race protection hardened
-- [ ] TypeScript/JavaScript and Rust project workflows
-- [ ] Git checkpoints and full role-based independent review
-- [ ] Retrieval of verified cases, provenance and privacy review
+- [x] Fixed Node/npm and offline Rust validation recipes (real local Node/Rust tests passed)
+- [x] Git recovery refs preserving user index and sequential role-based independent review (local protocol fixtures)
+- [x] Local retrieval/deduplication of test-backed cases with provenance
+- [ ] Full privacy/security review with real model
 - [ ] Editable vector master, small-size and accessible branding review
 - [ ] Full component, integration, dependency and security audits
 - [ ] Single extract-and-run offline Windows artifact and dependency audit

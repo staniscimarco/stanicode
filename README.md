@@ -2,11 +2,11 @@
 
 Private, local-first coding desktop application under development. **This checkout is an implemented development slice, not a complete or released offline Windows product.**
 
-React/TypeScript UI + Tauri 2 shell + standard-library Python backend. The engine inspects a workspace, requests structured actions from local llama-server, requires review before writes and Python test execution, executes real tests, attempts up to three repairs, records events/snapshots in SQLite and supports rollback after restart. Italian/English UI includes folder selection, task controls, file comparisons, reports, sessions, local evidence export/deletion and theme settings.
+React/TypeScript UI + Tauri 2 shell + standard-library Python backend. The engine inspects a workspace, requests structured actions from local llama-server, requires review before writes and Python test execution, executes real tests, attempts up to three repairs, records events/snapshots in SQLite and supports rollback after restart. Sequential local architect, implementer/debugger and reviewer roles share one model. Italian/English UI includes folder selection, task controls, file comparisons, reports, sessions, local evidence export/deletion and theme settings.
 
 ## Development
 
-Node 24, Python 3.12+, Rust and native Tauri prerequisites are developer dependencies. They are not intended as end-user requirements.
+Node 24, Python 3.12+, Rust and native Tauri prerequisites are developer dependencies. The Debian cloud image can prepare an unprivileged native sysroot with `python3 scripts/setup_native_linux.py`; source `scripts/native_env.sh` before native checks. They are not intended as end-user requirements.
 
 ```sh
 npm ci
@@ -22,4 +22,4 @@ On Windows use `python` for Python commands. Set `STANICODE_PYTHON` to a Python 
 
 ## Scope today
 
-Only Python `unittest` execution is implemented. Tests execute with user permissions after explicit approval. There is no OS sandbox, Git checkpoint integration, production vector logo, verified bundled model, real-model acceptance result, clean Windows result, signed binary, complete portable artifact or published release. Persisted snapshots provide rollback, not Git commits. Memory currently stores minimal passing-test evidence; it does not train weights or retrieve solved cases. Test inference uses a deterministic mock and is labeled accordingly.
+Validation recipes support bundled Python unittest, Node tests, project npm test scripts and offline Cargo tests. Tests execute with user permissions after explicit approval. There is no OS sandbox, production vector logo, verified bundled model, real-model acceptance result, clean Windows result, signed binary, complete portable artifact or published release. Optional Git recovery refs preserve the user index; persisted snapshots provide file rollback. Local FTS retrieves test-backed cases with provenance. Memory does not train model weights. Test inference uses a deterministic mock and is labeled accordingly.

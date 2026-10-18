@@ -1,12 +1,13 @@
 """Verified local model supervision. No downloads happen at application startup."""
 
-import hashlib
-import json
 from pathlib import Path
 import subprocess
 import time
 import secrets
 import threading
+import socket
+from resources import available_ram
+from bundle import verify
 from engine import execution_environment
 import urllib.request
 
@@ -15,8 +16,13 @@ class Runtime:
     def __init__(self, bundle):
         self.bundle = Path(bundle)
         self.process = None
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            self.port = probe.getsockname()[1]
+        self.endpoint = f"http://127.0.0.1:{self.port}"
         self.api_key = secrets.token_urlsafe(32)
         self.stopped = threading.Event()
+        self.provenance = {"verified": False}
         self.status = {
             "ready": False,
             "detail": "Bundled inference runtime/model not installed",
@@ -24,22 +30,36 @@ class Runtime:
 
     def start(self):
         try:
-            manifest = json.loads((self.bundle / "manifest.json").read_text())
-            paths = []
-            for key in ("runtime", "model"):
-                entry = manifest[key]
-                p = (self.bundle / entry["file"]).resolve(strict=True)
-                if not p.is_relative_to(self.bundle.resolve()) or not p.is_file():
-                    raise ValueError("Invalid bundle path")
-                with p.open("rb") as source:
-                    digest = hashlib.file_digest(source, "sha256").hexdigest()
-                if digest != entry["sha256"]:
-                    raise ValueError(f"{key} checksum mismatch")
-                if not entry.get("license"):
-                    raise ValueError("License metadata missing")
-                paths.append(p)
+            self.status = {
+                "ready": False,
+                "phase": "verifying",
+                "detail": "Verifying offline payload checksums",
+            }
+            manifest = verify(self.bundle)
+            paths = [
+                (self.bundle / manifest[key]["file"]).resolve(strict=True)
+                for key in ("runtime", "model")
+            ]
+            self.provenance = {
+                key: {
+                    field: manifest[key][field]
+                    for field in ("source", "version", "sha256", "license")
+                }
+                for key in ("runtime", "model")
+            }
+            minimum = manifest["model"].get("minimum_available_ram_bytes")
+            if not isinstance(minimum, int) or minimum <= 0:
+                raise ValueError("Model RAM requirement is missing")
+            available = available_ram()
+            if available is not None and available < minimum:
+                raise RuntimeError("Insufficient available RAM for the bundled model")
             if self.stopped.is_set():
                 return
+            self.status = {
+                "ready": False,
+                "phase": "loading",
+                "detail": "Loading the verified local coding model",
+            }
             self.process = subprocess.Popen(
                 [
                     str(paths[0]),
@@ -48,7 +68,7 @@ class Runtime:
                     "--host",
                     "127.0.0.1",
                     "--port",
-                    "8766",
+                    str(self.port),
                     "-c",
                     "16384",
                     "--parallel",
@@ -68,23 +88,44 @@ class Runtime:
                     raise RuntimeError("Inference process exited before readiness")
                 try:
                     with urllib.request.urlopen(
-                        "http://127.0.0.1:8766/health", timeout=1
+                        urllib.request.Request(
+                            self.endpoint + "/v1/models",
+                            headers={"Authorization": "Bearer " + self.api_key},
+                        ),
+                        timeout=1,
                     ) as response:
                         if response.status == 200:
                             self.status = {
                                 "ready": True,
+                                "phase": "ready",
                                 "detail": "Verified local runtime and model loaded",
                             }
+                            while not self.stopped.wait(0.5):
+                                if self.process.poll() is not None:
+                                    self.status = {
+                                        "ready": False,
+                                        "phase": "error",
+                                        "detail": "Local inference process exited; restart STANICODE",
+                                    }
+                                    return
                             return
                 except OSError:
                     time.sleep(0.5)
             raise RuntimeError("Inference readiness timeout")
         except Exception as e:
             self.stop()
-            self.status = {"ready": False, "detail": str(e)}
+            self.status = {
+                "ready": False,
+                "phase": "error",
+                "detail": "Offline model bundle not installed"
+                if isinstance(e, FileNotFoundError)
+                and not (self.bundle / "manifest.json").exists()
+                else str(e),
+            }
 
     def stop(self):
         self.stopped.set()
+        self.status = {"ready": False, "detail": "Local inference stopped"}
         if self.process and self.process.poll() is None:
             self.process.terminate()
             try:

@@ -86,6 +86,7 @@ describe("Desktop controls (native bridge and HTTP mocked)", () => {
         prompt: "test",
         workspace: "/test/workspace",
         state: "awaiting_approval",
+        approval_id: "fixture-approval",
         events: [],
         changes: [],
         pending: [{ path: "example.py", before: null, after: "print(42)" }],

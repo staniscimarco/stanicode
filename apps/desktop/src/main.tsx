@@ -5,6 +5,15 @@ import { open } from "@tauri-apps/plugin-dialog";
 import "./style.css";
 
 type Connection = { port: number; token: string };
+type MemoryCase = {
+  id: string;
+  request: string;
+  summary: string;
+  recipe: string;
+  evidence: string;
+  metadata: { model: string };
+  created: number;
+};
 type Change = { path: string; before: string | null; after: string };
 type Task = {
   id: string;
@@ -14,6 +23,7 @@ type Task = {
   events: { phase: string; message: string; time: number }[];
   changes: Change[];
   pending: Change[] | null;
+  approval_id: string | null;
 };
 type Health = {
   backend: boolean;
@@ -84,9 +94,32 @@ export function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selected, setSelected] = useState("");
   const [tab, setTab] = useState("activity");
-  const [memory, setMemory] = useState<unknown[]>([]);
+  const [memory, setMemory] = useState<MemoryCase[]>([]);
+  const [memoryQuery, setMemoryQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const w = words[lang];
+  const statusLabels: Record<string, string> =
+    lang === "it"
+      ? {
+          running: "In corso",
+          paused: "In pausa",
+          awaiting_approval: "Da approvare",
+          completed: "Completata",
+          failed: "Non riuscita",
+          cancelled: "Annullata",
+          interrupted: "Interrotta",
+          rolled_back: "Ripristinata",
+        }
+      : {
+          running: "Running",
+          paused: "Paused",
+          awaiting_approval: "Awaiting approval",
+          completed: "Completed",
+          failed: "Failed",
+          cancelled: "Cancelled",
+          interrupted: "Interrupted",
+          rolled_back: "Restored",
+        };
   const task = tasks.find((t) => t.id === selected) || tasks[0];
   async function api<T>(path: string, body?: unknown): Promise<T> {
     if (!connection) throw Error("Desktop backend is not connected");
@@ -147,7 +180,11 @@ export function App() {
   async function act(action: string) {
     if (!task) return;
     try {
-      await api("/control", { id: task.id, action });
+      await api("/control", {
+        id: task.id,
+        action,
+        approval_id: task.approval_id,
+      });
       setError("");
     } catch (e) {
       setError(String(e));
@@ -185,7 +222,7 @@ export function App() {
               onClick={() => {
                 setTab(t);
                 if (t === "memory")
-                  api<unknown[]>("/memory")
+                  api<MemoryCase[]>("/memory")
                     .then(setMemory)
                     .catch((e) => setError(String(e)));
               }}
@@ -246,7 +283,7 @@ export function App() {
           />
           <div className="composer-footer">
             <span>
-              Python unittest ·{" "}
+              Python · Node · Rust ·{" "}
               {lang === "it"
                 ? "approvazione obbligatoria"
                 : "approval required"}
@@ -320,11 +357,52 @@ export function App() {
                 ? "Solo evidenze di test superati. Nessun addestramento dei pesi."
                 : "Passed test evidence only. No weight training."}
             </p>
-            <pre>{JSON.stringify(memory, null, 2)}</pre>
+            <div className="memory-search">
+              <input
+                aria-label={
+                  lang === "it" ? "Cerca nella memoria" : "Search memory"
+                }
+                value={memoryQuery}
+                onChange={(e) => setMemoryQuery(e.target.value)}
+                placeholder={
+                  lang === "it"
+                    ? "Cerca un problema già risolto…"
+                    : "Find a previously solved problem…"
+                }
+              />
+              <button
+                onClick={() =>
+                  api<MemoryCase[]>(
+                    "/memory?query=" + encodeURIComponent(memoryQuery),
+                  )
+                    .then(setMemory)
+                    .catch((e) => setError(String(e)))
+                }
+              >
+                {lang === "it" ? "Cerca" : "Search"}
+              </button>
+            </div>
+            {memory.map((item) => (
+              <details key={item.id}>
+                <summary>{item.request}</summary>
+                <p>{item.summary}</p>
+                <small>
+                  {item.recipe} · {item.metadata.model} ·{" "}
+                  {new Date(item.created * 1000).toLocaleDateString(lang)}
+                </small>
+                <pre>{item.evidence}</pre>
+              </details>
+            ))}
             <button onClick={() => exportJson(memory)}>{w.export}</button>
             <button
               onClick={async () => {
-                if (confirm("Delete all local knowledge?")) {
+                if (
+                  confirm(
+                    lang === "it"
+                      ? "Eliminare tutti i casi salvati?"
+                      : "Delete all saved cases?",
+                  )
+                ) {
                   try {
                     await api("/memory/delete", {});
                     setMemory([]);
@@ -334,7 +412,7 @@ export function App() {
                 }
               }}
             >
-              Delete memory
+              {lang === "it" ? "Elimina memoria" : "Delete memory"}
             </button>
           </section>
         ) : tab === "history" ? (
@@ -350,7 +428,7 @@ export function App() {
                 }}
               >
                 <span>{t.prompt}</span>
-                <code>{t.state}</code>
+                <code>{statusLabels[t.state] || t.state}</code>
               </button>
             ))}
           </section>
@@ -358,7 +436,11 @@ export function App() {
           <section className="panel">
             <div className="panel-title">
               <h2>{tab === "changes" ? w.changes : w.activity}</h2>
-              {task && <span className="badge">{task.state}</span>}
+              {task && (
+                <span className="badge" data-state={task.state}>
+                  {statusLabels[task.state] || task.state}
+                </span>
+              )}
             </div>
             {task ? (
               <>

@@ -359,3 +359,22 @@ summary {
     scroll-behavior: auto;
   }
 }
+
+.memory-search {
+  display: flex;
+  gap: 10px;
+  margin: 22px 0;
+}
+.memory-search input {
+  flex: 1;
+  background: var(--input);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  color: inherit;
+  font: inherit;
+  min-width: 0;
+}
+input:focus-visible {
+  outline: 2px solid var(--cyan);
+}

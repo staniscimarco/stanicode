@@ -8,3 +8,5 @@ __pycache__/
 *.gguf
 models/bin/
 *.sqlite*
+
+apps/desktop/src-tauri/gen/

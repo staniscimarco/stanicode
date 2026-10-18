@@ -1,40 +1,39 @@
-# Development evidence and remaining work
+# Development evidence and release blockers
 
-This is a development implementation, **not a completed STANICODE release**.
+This is implemented application code, **not a completed or accepted Windows release**.
 
-## Implemented and locally exercised
+## Implemented
 
-- Python backend: bounded structured file proposals; approval before writes and test execution; path traversal, protected-path and symlink rejection; serial task execution; pause/resume at safe checkpoints; cancellation; three-attempt repair limit.
-- SQLite history and original file snapshots; persisted rollback with external-edit detection; passing-test evidence export/deletion.
-- Loopback HTTP API with random session authentication, Host validation and Origin restrictions. Generated tests do not inherit injected GitHub/API credentials.
-- Local llama-server adapter and supervised runtime startup with runtime/model checksums. Model requests use a per-launch API key. No cloud inference or telemetry implemented.
-- React/TypeScript UI with native folder-picker integration, task controls, pending before/after review, event log, history, report export, evidence memory and Italian/English labels, dark/light themes.
-- Tauri shell source that starts the standalone backend, retains session credentials in memory and closes its stdin on native process exit.
-- Standalone Linux backend built with PyInstaller. Its own bundled interpreter runs an actual generated-workspace unittest. Authenticated health and shutdown on parent-close were exercised.
-- Owner-supplied raster assets imported; Windows ICO and raster sizes generated. No new editable vector master is claimed.
+- One local model runs serial architect, implementer/debugger and independent-reviewer roles. The architect plan is passed to implementation. The reviewer can reject a task even when tests pass. Malformed implementation JSON triggers a bounded repair attempt. Cancellation interrupts an in-flight inference socket.
+- File actions require review and approval tied to a unique proposal identifier; stale approval requests are rejected. Portable path rules reject traversal, symlinks, Windows device names, alternate streams, Git internals and common secret paths. Atomic replacement avoids modifying an external hardlink. Concurrent tasks and rollback/write races are rejected.
+- Optional Git recovery refs preserve the user's index; file snapshots support rollback without resetting unrelated work. Unfinished approvals are marked interrupted on restart. Write-ahead snapshots recover both sides of an interrupted file replacement.
+- Fixed validation recipes cover bundled Python unittest, Node tests, project npm test scripts and offline Cargo tests. Missing project toolchains have explicit diagnostics; STANICODE itself does not require Node or Cargo at launch. No dependency installation is performed by these recipes.
+- Validation output is bounded in memory. Linux process groups are cleaned up on cancellation/timeout/exit. A Windows Job Object implementation is present but remains untested on Windows. These mechanisms are process lifecycle controls, not an OS sandbox.
+- SQLite FTS retrieves deduplicated, test-backed cases before planning; provenance records model/runtime identity and patch hashes. Cases are saved only after passing validation and independent review. Root-cause text remains a model hypothesis. Memory can be searched, exported and deleted; weights are not trained or changed.
+- Authenticated loopback backend with random session token, allowed Origin and exact Host checks. Generated code does not inherit injected API/GitHub credentials. Task snapshots still contain private source; the local database must be protected.
+- Shared startup/package verifier checks runtime/model/companion hashes, source/version/license metadata and declared RAM requirements. Inference uses a random loopback port and per-launch API key. Startup detects a missing bundle and monitors runtime exit.
+- Italian/English React UI includes folder selection, task controls, file comparisons, events, sessions, report export, searchable memory and dark/light themes. Native Tauri shell starts the standalone backend. Raster branding and ICO sizes derive from supplied assets.
+- ZIP64 assembly validates Windows x64 PE headers, actual GGUF magic, model/runtime hashes, companion libraries and the complete fixed WebView2 file hash inventory. It requires license/SBOM staging and produces only an unaccepted candidate. It never relabels a Linux binary as Windows or downloads missing components at end-user startup.
 
-## Checks
+## Actual local evidence
 
-- 12 backend tests: real file generation and one real workspace unittest with a deterministic mock model; persistence/restart/rollback; traversal/symlinks/secrets; cancellation; pause/resume; HTTP authentication/origin; checksum and absent-payload rejection; context limits; credential filtering; zero-test rejection.
-- 4 UI component tests: folder selection/request submission, disabled start without inference, proposed-file display and explicit approval, locale persistence. Native APIs and HTTP responses are mocked in these component tests.
-- TypeScript check and Vite production build passed.
-- Full npm audit passed after upgrading the test runner to resolve reported advisories. This is an audit of installed dependency metadata, not proof that the app is secure.
-- Python Ruff checks passed.
-- Packaged Linux backend smoke passed; no Windows runtime result is inferred from it.
+- **39 Python tests passed**, including real Python, Node and Rust test executions; role protocol over a local HTTP fixture; independent-review rejection; retrieval/dedup/deletion; Git index preservation; traversal/Windows paths/hardlinks; process timeout/cancel/output limits; and packaging integrity/container fixtures.
+- **4 UI component tests passed** with native/HTTP mocks.
+- **Real system Chromium acceptance passed** through the actual UI and authenticated backend: folder selection through a native bridge fixture, request, approval, real file writes, actual Python unittest, reviewer fixture, memory search, JSON report download, locale/theme and rollback. Inference and native selection/bootstrap were simulated in this check; it is not real-model or Windows acceptance.
+- TypeScript and Vite production build passed. Full npm audit reported zero known advisories in the installed tree. Ruff checks passed. This is not proof of complete application security.
+- **Native Linux `cargo check --locked --jobs 2` passed** after extracting 131 signature/checksum-verified Debian packages into `/workspace/.stanicode-tools/linux-sysroot`. System files were not installed or modified. This compiles/checks the Tauri source; it does not prove a linked GUI executable runs.
+- A standalone Linux backend was built and tested. Its packaged interpreter ran a real project unittest; authenticated health correctly rejected missing inference; parent-close shutdown passed. No Windows conclusion follows from that Linux result.
+- Packaging tests use explicitly labeled, non-executable PE/GGUF container fixtures. No test fixture is a distributable product or real model.
 
-## Observed blockers
+## Confirmed external blockers
 
-- Requests to `api.github.com`, `huggingface.co` and `cdn.playwright.dev` returned proxy 403 Forbidden. Network additions were saved in the environment draft, but that does not apply them to the running instance. Git read access to the selected repository works; the remote originally had no refs.
-- GitHub account/repository metadata and privacy could not be verified through API. No push, Actions execution, release publication or public artifact upload is claimed. Source is retained locally.
-- `cargo check` stops in `glib-sys`: required `glib-2.0` system metadata is absent. GTK/WebKitGTK development libraries are also absent. The native Tauri shell has not compiled or run on this machine.
-- Chromium is absent and its download was denied. No real-browser or native desktop visual test passed. UI component tests use jsdom.
-- No Windows execution environment is attached. Windows build, installer, clean-machine tests and signing remain unrun.
-- No actual model or inference binary is present. Real-model reliability, license verification, RAM/performance and offline end-to-end acceptance remain unvalidated. The interface deliberately disables task creation without local inference readiness.
+- The running cloud machine still receives proxy **403 Forbidden** for `api.github.com`, `huggingface.co`, `cdn.playwright.dev` and the official `developer.microsoft.com` WebView2 page. Saved draft network rules are not evidence that runtime access was applied.
+- No actual inference weights/runtime or fixed Windows WebView2 payload could be obtained and validated. Exact model suitability, licensing, RAM/performance and real tool-use reliability remain unproven. Task creation correctly stays disabled without real inference readiness.
+- No Windows machine/runner is attached or executed. Windows compile/link, Job Object behavior, portable startup, no-prerequisite offline acceptance, signing and installer behavior remain unvalidated.
+- Git read access works. GitHub API account/privacy verification and Actions access remain blocked. No source push, CI success, tag, release URL or downloadable Windows app is claimed. User preference is to complete local development before publication.
 
-## Product requirements still pending
+## Remaining release requirements
 
-This implementation supports Python unittest workflows only. Approved tests execute arbitrary workspace code with user permissions; there is no OS sandbox, process-tree containment or protection against a concurrent hostile filesystem actor. Pause/cancel during inference waits for the current model request (up to its timeout). The bundled interpreter has the modules collected by PyInstaller, not a guaranteed complete external project toolchain.
+Run `scripts/smoke_real_inference.py` on the actual packaged backend and licensed model. Build and inspect the Windows portable candidate, include a verified fixed WebView2 runtime, dependency license texts and complete CycloneDX SBOM, then execute clean Windows native/offline acceptance before any release. The current assembler checks structure/integrity, not runtime correctness or legal sufficiency.
 
-Sequential architect/implementer/debugger/reviewer roles, Git checkpoints (as distinct from current local snapshots), language adapters beyond Python, independent model review, solved-case retrieval with provenance, privacy-hardened memory, training/merge research modules, complete bilingual accessibility review, clean editable SVG branding, full license texts/SBOM and a true self-contained portable Windows distribution remain unfinished. They must not be described as shipped features.
-
-No tag or production release has been created. The Windows workflow produces only an explicitly labeled no-model development installer when it actually runs; it does not establish release acceptance. See RELEASE_CHECKLIST.md.
+A complete editable SVG brand master, full accessibility review, a safe advanced Ollama integration, stronger project isolation and comprehensive real-model regressions remain unfinished. Training/merging research modules are deliberately deferred until the baseline release works, as the supplied specification requires. No production-readiness claim is made. See RELEASE_CHECKLIST.md.

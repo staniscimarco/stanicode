@@ -23,6 +23,12 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: npm run test:ui
       - run: npm run build
+      - name: Exercise UI in real Chromium with simulated inference
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install -r requirements-browser.txt
+          python -m playwright install --with-deps chromium
+          python scripts/smoke_browser.py
       - run: npm audit --omit=dev --audit-level=high
       - name: Package backend on Windows
         if: runner.os == 'Windows'

@@ -15,6 +15,12 @@ from runtime import Runtime
 
 
 class MockModel:
+    def plan(self, *args):
+        return {"steps": ["Implement and test"], "acceptance": "tests pass"}
+
+    def review(self, *args):
+        return {"accepted": True, "reason": "Deterministic test reviewer accepted"}
+
     def generate(self, *args):
         return {
             "summary": "Create a tested sum function",
@@ -64,7 +70,9 @@ class Tests(unittest.TestCase):
         self.wait(task, {"awaiting_approval", "failed"})
         self.assertEqual(task["state"], "awaiting_approval")
         self.assertFalse((self.root / "workspace" / "calculator.py").exists())
-        self.engine.control(task["id"], "approve")
+        self.engine.control(
+            task["id"], "approve", self.engine.controls[task["id"]]["approval_id"]
+        )
         self.wait(task, {"completed", "failed"})
         self.assertEqual(task["state"], "completed", task)
         self.assertTrue(any("Ran 1 test" in e["message"] for e in task["events"]))
@@ -112,7 +120,9 @@ class Tests(unittest.TestCase):
     def test_rollback_preserves_external_edits(self):
         task = self.engine.create(str(self.root / "workspace"), "test")
         self.wait(task, {"awaiting_approval"})
-        self.engine.control(task["id"], "approve")
+        self.engine.control(
+            task["id"], "approve", self.engine.controls[task["id"]]["approval_id"]
+        )
         self.wait(task, {"completed"})
         p = self.root / "workspace" / "calculator.py"
         p.write_text("# user changes")
@@ -197,7 +207,9 @@ class Tests(unittest.TestCase):
         task = self.engine.create(str(self.root / "workspace"), "test")
         for _ in range(3):
             self.wait(task, {"awaiting_approval"})
-            self.engine.control(task["id"], "approve")
+            self.engine.control(
+                task["id"], "approve", self.engine.controls[task["id"]]["approval_id"]
+            )
             # Wait for approval to be consumed before awaiting the next round.
             deadline = time.monotonic() + 5
             while (
