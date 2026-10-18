@@ -29,8 +29,15 @@ def main():
     for path in files:
         with pefile.PE(str(path), fast_load=True) as binary:
             binary.parse_data_directories(directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"], pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"]])
-            if binary.FILE_HEADER.Machine != 0x8664:
-                raise ValueError("Non-x64 PE in portable payload: " + path.name)
+            # Microsoft's pinned x64 CAB also contains this x86 host loader.
+            # Preserve the complete vendor distribution and audit its actual
+            # OS imports against WOW64; it is not loaded by our x64 host.
+            auxiliary = (path == payload / "webview2/EBWebView/x86/EmbeddedBrowserWebView.dll"
+                         and binary.FILE_HEADER.Machine == 0x14C
+                         and digest(path) == "1aae79b774920d3662d0b7827caa1e76e6016fdd99f0570225806fc1ee6007a0")
+            if binary.FILE_HEADER.Machine != 0x8664 and not auxiliary:
+                raise ValueError("Unexpected PE architecture in portable payload: " + str(path))
+            image_system = system.parent / "SysWOW64" if auxiliary else system
             search = [path.parent]
             if path == executable:
                 search.append(payload / "models")  # These CRTs are also copied beside STANICODE.exe.
@@ -54,11 +61,13 @@ def main():
                     missing.append(str(path) + " -> " + name)
                 elif name.startswith(("api-ms-win-", "ext-ms-win-")):
                     resolved.append({"name": name, "kind": "Windows-api-set"})
-                elif (system / name).is_file():
-                    resolved.append({"name": name, "kind": "Windows-System32"})
+                elif (image_system / name).is_file():
+                    resolved.append({"name": name, "kind": "Windows-" + image_system.name})
                 else:
                     missing.append(str(path) + " -> " + name)
             records.append({"file": "STANICODE.exe" if path == executable else "payload/" + path.relative_to(payload).as_posix(),
+                            "machine": hex(binary.FILE_HEADER.Machine),
+                            "role": "verified-vendor-x86-host-loader" if auxiliary else "x64-runtime",
                             "imports": resolved, "delay_imports": [entry.dll.decode("ascii") for entry in getattr(binary, "DIRECTORY_ENTRY_DELAY_IMPORT", [])]})
     report = {"kind": "actual-x64-PE-import-audit", "files": records, "missing": missing, "clean_windows_vm": False}
     output = Path(".local/evidence/windows-dependencies.json")
@@ -66,7 +75,7 @@ def main():
     output.write_text(json.dumps(report, indent=2), encoding="utf-8")
     if missing:
         raise RuntimeError("Missing portable DLLs: " + "; ".join(missing))
-    print(f"Verified actual PE imports for {len(files)} x64 images; installed developer CRTs do not satisfy the audit.")
+    print(f"Verified actual PE imports for {len(files)} images, including the hash-pinned vendor x86 host loader; installed developer CRTs do not satisfy the audit.")
 
 
 if __name__ == "__main__":
