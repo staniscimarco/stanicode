@@ -163,6 +163,12 @@ class Workspace:
             raise ValueError("Path escapes workspace")
         return candidate
 
+    def read(self, relative):
+        # Source text is UTF-8, independent of Windows' active code page.
+        # Keep exact newlines so rollback can restore the original bytes.
+        with self.path(relative).open("r", encoding="utf-8", newline="") as stream:
+            return stream.read()
+
     def write(self, relative, content):
         path = self.path(relative)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -173,6 +179,7 @@ class Workspace:
             dir=path.parent,
             prefix=".stanicode-",
             delete=False,
+            newline="",
         )
         try:
             with handle:
@@ -197,7 +204,7 @@ class Workspace:
                     relative = p.relative_to(self.root).as_posix()
                     safe = self.path(relative)
                     if safe.stat().st_size < 16000:
-                        text = safe.read_text()
+                        text = self.read(relative)
                         if len(text) <= remaining:
                             result[relative] = text
                             remaining -= len(text)
@@ -371,7 +378,7 @@ class Engine:
                     if str(path) in seen:
                         raise ValueError("Duplicate path")
                     seen.add(str(path))
-                    before = path.read_text() if path.exists() else None
+                    before = ws.read(item["path"]) if path.exists() else None
                     pending.append(
                         {
                             "path": item["path"],
@@ -408,7 +415,7 @@ class Engine:
                 for change in pending:
                     self.checkpoint(task)
                     path = ws.path(change["path"])
-                    current = path.read_text() if path.exists() else None
+                    current = ws.read(change["path"]) if path.exists() else None
                     if current != change["before"]:
                         raise ValueError("File changed externally; refusing overwrite")
                     journal = {**change, "applied": False}
@@ -513,7 +520,7 @@ class Engine:
         # Validate every file before mutation, including a write-ahead entry interrupted by a crash.
         for name, chain in chains.items():
             path = ws.path(name)
-            current = path.read_text() if path.exists() else None
+            current = ws.read(name) if path.exists() else None
             last = chain[-1]
             if not last.get("applied", True) and current == last["before"]:
                 chain = chain[:-1]

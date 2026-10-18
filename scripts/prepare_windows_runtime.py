@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 import urllib.request
+import urllib.parse
 import html
 from prepare_model import download, digest, verify_microsoft
 
@@ -49,10 +50,12 @@ def acquire_credits(destination):
             context = browser.contexts[0] if browser.contexts else browser.new_context()
             page = context.pages[0] if context.pages else context.new_page()
             page.goto("edge://credits", wait_until="domcontentloaded", timeout=30000)
-            text = page.locator("body").inner_text()
+            # Chromium keeps many complete license bodies in collapsed nodes.
+            text = page.locator("body").text_content()
             if len(text) < 10000 or "licen" not in text.lower():
                 raise ValueError("Exact runtime did not expose complete upstream credits")
             (destination / "THIRD-PARTY-CREDITS.txt").write_text(text, encoding="utf-8")
+            (destination / "THIRD-PARTY-CREDITS.html").write_text(page.content(), encoding="utf-8")
         finally:
             browser.close()
 
@@ -115,6 +118,21 @@ def main():
                     terms = visible[heading.start():]
                     (payload / (label + ".txt")).write_text(terms, encoding="utf-8")
                     inspection[label]["actual_terms_excerpt"] = terms[:2400]
+                else:
+                    links = re.findall(r'href=["\x27]([^"\x27]+\.(?:rtf|pdf|txt)(?:\?[^"\x27]*)?)["\x27]', text, re.I)
+                    inspection[label]["license_download_links"] = links
+                    for link in links:
+                        resolved = urllib.parse.urljoin(response.url, html.unescape(link))
+                        if urllib.parse.urlsplit(resolved).hostname != "visualstudio.microsoft.com":
+                            continue
+                        suffix = Path(urllib.parse.urlsplit(resolved).path).suffix.lower()
+                        if suffix in {".rtf", ".pdf"}:
+                            license_file = download(resolved, payload / ("Visual-C-runtime-terms" + suffix))
+                            magic = license_file.read_bytes()[:5]
+                            if (suffix == ".rtf" and not magic.startswith(b"{\\rtf")) or (suffix == ".pdf" and magic != b"%PDF-"):
+                                license_file.unlink()
+                                raise ValueError("Microsoft license download was not the declared document format")
+                            inspection[label]["downloaded_license_sha256"] = digest(license_file)
         except Exception as error:
             inspection[label] = {"error": str(error)}
     redist = Path(os.environ["VCToolsRedistDir"])

@@ -3,12 +3,14 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  PYTHONUTF8: '1'
 concurrency:
   group: complete-windows-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +42,8 @@ jobs:
       - name: Inventory actual dependency license texts
         id: licenses
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python scripts/ci_run.py python scripts/collect_licenses.py
       - name: Real-model coding, actual tests and independent review
         run: python scripts/ci_run.py python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models

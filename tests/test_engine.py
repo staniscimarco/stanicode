@@ -110,6 +110,19 @@ class Tests(unittest.TestCase):
         self.assertIn("src/nested/calculator.py", context)
         self.assertNotIn("src/.env", context)
 
+    def test_utf8_and_original_newlines_survive_rollback(self):
+        source = self.root / "workspace/calculator.py"
+        original = '# città\r\nname = "caffè ☕"\r\n'.encode("utf-8")
+        source.write_bytes(original)
+        self.assertEqual(Workspace(source.parent).context()[source.name], original.decode("utf-8"))
+        task = self.engine.create(str(source.parent), "Create tested addition")
+        self.wait(task, {"awaiting_approval", "failed"})
+        self.engine.control(task["id"], "approve", self.engine.controls[task["id"]]["approval_id"])
+        self.wait(task, {"completed", "failed"})
+        self.assertEqual(task["state"], "completed", task)
+        self.engine.rollback(task["id"])
+        self.assertEqual(source.read_bytes(), original)
+
     def test_cancel_pending(self):
         task = self.engine.create(str(self.root / "workspace"), "test")
         self.wait(task, {"awaiting_approval"})

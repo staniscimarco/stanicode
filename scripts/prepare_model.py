@@ -17,6 +17,8 @@ MODEL_URL = f"https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve
 MODEL_HASH = "509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c"
 LLAMA_URL = "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-win-cpu-x64.zip"
 LLAMA_HASH = "37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b"
+LLAMA_SOURCE_URL = "https://codeload.github.com/ggml-org/llama.cpp/zip/620d2225cc436ab0b001e3200e590e3b286ef9ab"
+LLAMA_SOURCE_HASH = "48b431f8984dcc79efd2589de85fc53e42c6193522c97641e8dbc4376ebb3a5a"
 
 
 def digest(path):
@@ -74,6 +76,8 @@ def prepare(destination, cache):
         destination / "llama-LICENSE.txt",
         "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
     )
+    source = download(LLAMA_SOURCE_URL, cache / "llama-source-b11669.zip", LLAMA_SOURCE_HASH)
+    shutil.copy2(source, destination / "llama-source-b11669.zip")
     # App-local release CRT from Visual Studio's designated redistributable directory.
     redist = Path(os.environ["VCToolsRedistDir"])
     candidates = list((redist / "x64").glob("Microsoft.VC*.CRT"))
@@ -87,6 +91,7 @@ def prepare(destination, cache):
             "file": "llama-server.exe", "sha256": digest(destination / "llama-server.exe"),
             "version": "b11669", "source": LLAMA_URL, "license": "MIT",
             "license_file": "llama-LICENSE.txt", "archive_sha256": LLAMA_HASH,
+            "source_archive": {"file": "llama-source-b11669.zip", "sha256": LLAMA_SOURCE_HASH, "url": LLAMA_SOURCE_URL},
         },
         "model": {
             "file": MODEL, "sha256": MODEL_HASH, "version": REVISION,

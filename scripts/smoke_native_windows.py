@@ -88,7 +88,11 @@ foreach ($program in (Get-Content -LiteralPath $programs -Raw | ConvertFrom-Json
 
         def launch():
             app = subprocess.Popen([str(executable)], env=environment)
-            wait_for_cdp(port, app)
+            try:
+                wait_for_cdp(port, app)
+            except Exception:
+                subprocess.run(["taskkill", "/PID", str(app.pid), "/T", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                raise
             return app
 
         app = None
