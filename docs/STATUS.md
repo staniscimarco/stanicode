@@ -13,7 +13,9 @@ Updated 18 October 2026. The public source repository is authorized by the owner
 
 ## Work in progress
 
-Actual native UI acceptance drives the Windows folder picker, real local inference, file approvals, tests, report export, locale/theme, single instance and restart history. It hides developer tools from the product PATH and applies outbound Windows Firewall blocks. Run [39111566302](https://github.com/staniscimarco/stanicode/actions/runs/39111566302) stopped before application launch because Windows rejected the test's IPv6 firewall prefix. Explicit address ranges and a fast real firewall/loopback preflight are now being validated. This failure does not establish native GUI or offline acceptance.
+Actual native UI acceptance drives the Windows folder picker, real local inference, file approvals, tests, report export, locale/theme, single instance and restart history. It hides developer tools from the product PATH and applies outbound Windows Firewall blocks. Real firewall preflights passed with both client and server blocked, including IPv4-mapped IPv6 loopback, in [39114635926](https://github.com/staniscimarco/stanicode/actions/runs/39114635926).
+
+Run [39114159286](https://github.com/staniscimarco/stanicode/actions/runs/39114159286) started the real STANICODE window, fixed WebView2 processes, packaged backend and llama-server, but the GUI driver could not reach the WebView inspection port. It failed and does not prove interactive/native acceptance. Release inspection is now compiled in and enabled only by the explicit native acceptance environment flag; ordinary launches keep the inspector off. The revised Windows acceptance run is pending.
 
 The ZIP64 assembler streams multi-GB weights directly and verifies PE architecture, GGUF header, model/runtime/support hashes and complete fixed-WebView inventory. Actual license texts and CycloneDX SBOM are mandatory. Unit-test binary fixtures are non-executable and never distributed as the product.
 

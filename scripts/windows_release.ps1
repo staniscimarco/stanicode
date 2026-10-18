@@ -16,13 +16,13 @@ Invoke-Checked 'Pinned model and CPU runtime' { python scripts/prepare_model.py 
 Invoke-Checked 'Standalone backend' { python scripts/package_agent.py }
 Invoke-Checked 'Signed WebView2 and Microsoft notices' { python scripts/prepare_windows_runtime.py }
 Invoke-Checked 'Actual dependency licenses and SBOM' { python scripts/collect_licenses.py }
-Invoke-Checked 'Actual model coding and independent review' { python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models }
 Push-Location apps/desktop
 try {
     Invoke-Checked 'Native desktop' { node ../../node_modules/@tauri-apps/cli/tauri.js build --no-bundle }
 } finally { Pop-Location }
+Invoke-Checked 'Portable PE imports' { python scripts/audit_windows_dependencies.py --executable apps/desktop/src-tauri/target/release/stanicode.exe }
 # Firewall rules require an elevated build shell and are removed by the test.
 Invoke-Checked 'Actual native offline UI and restart' { python scripts/smoke_native_windows.py --executable apps/desktop/src-tauri/target/release/stanicode.exe }
-Invoke-Checked 'Portable PE imports' { python scripts/audit_windows_dependencies.py --executable apps/desktop/src-tauri/target/release/stanicode.exe }
+Invoke-Checked 'Actual model coding and independent review' { python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models }
 Invoke-Checked 'Verified portable assembly' { python scripts/build_portable.py --executable apps/desktop/src-tauri/target/release/stanicode.exe }
 # Candidate only: dedicated clean Windows 10/11 acceptance is a separate gate.
