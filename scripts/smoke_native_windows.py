@@ -135,8 +135,11 @@ Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Obj
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 page.get_by_role("button", name="Scegli cartella").click()
                 # Drive the actual operating-system picker, not a patched invoke.
-                dialog = Desktop(backend="win32").window(class_name="#32770")
-                dialog.wait("visible", timeout=30)
+                picker = Desktop(backend="win32").window(class_name="#32770", process=app.pid)
+                picker.wait("visible", timeout=30)
+                # Keep the actual picker handle stable: unrelated Windows
+                # dialogs can appear while the address bar navigates.
+                dialog = Desktop(backend="win32").window(handle=picker.wrapper_object().handle)
                 dialog.set_focus()
                 from pywinauto.keyboard import send_keys
                 send_keys("%d")
@@ -144,7 +147,9 @@ Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Obj
                 send_keys("{ENTER}")
                 time.sleep(0.5)
                 # Folder dialogs normally expose their accept button as ID 1.
-                dialog.child_window(control_id=1).click()
+                accept = dialog.child_window(control_id=1)
+                accept.wait("visible enabled", timeout=15)
+                accept.click()
                 expect(page.locator(".workspace code")).to_have_text(str(workspace), timeout=30000)
                 report["folder_picker"] = True
                 start = page.get_by_role("button", name="Avvia sviluppo", exact=False)
