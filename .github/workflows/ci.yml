@@ -2,6 +2,9 @@ name: Validate development build
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
+concurrency:
+  group: development-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     strategy:
