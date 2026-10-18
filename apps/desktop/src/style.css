@@ -1,0 +1,361 @@
+:root {
+  font-family:
+    Inter,
+    Segoe UI,
+    system-ui,
+    sans-serif;
+  color: #e9edf6;
+  background: #0b0d14;
+  font-synthesis: none;
+  --surface: #131720;
+  --line: #272e3c;
+  --muted: #9da8bd;
+  --cyan: #81e6ee;
+  --input: #0d111a;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+select,
+textarea {
+  font: inherit;
+}
+button,
+select {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: inherit;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+button:hover {
+  border-color: #69969d;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+.shell {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  min-height: 100vh;
+}
+aside {
+  padding: 30px 20px;
+  border-right: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 1.4px;
+}
+.brand img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 9px;
+}
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+nav {
+  display: grid;
+  gap: 8px;
+  margin-top: 36px;
+}
+nav button {
+  text-align: left;
+  border-color: transparent;
+  background: transparent;
+  padding: 12px;
+}
+.active {
+  color: var(--cyan);
+  background: #1a303b !important;
+  border-color: #35505a !important;
+}
+.sidebar-bottom {
+  margin-top: auto;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+small {
+  display: block;
+  color: var(--muted);
+}
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d9a76c;
+  margin-right: 6px;
+}
+.dot.ready {
+  background: #7cdeae;
+}
+main {
+  max-width: 1300px;
+  width: 100%;
+  padding: 42px 48px;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+h1 {
+  font-size: 28px;
+  letter-spacing: -1px;
+  margin: 8px 0;
+}
+h2 {
+  font-size: 16px;
+  margin: 0;
+}
+header select {
+  height: 40px;
+}
+.composer,
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.workspace {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.workspace code {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace button {
+  font-size: 12px;
+}
+textarea {
+  display: block;
+  resize: vertical;
+  width: 100%;
+  min-height: 140px;
+  padding: 22px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  line-height: 1.6;
+}
+textarea::placeholder {
+  color: #7c899f;
+}
+.composer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.primary {
+  background: var(--cyan);
+  color: #08262d;
+  border-color: transparent;
+  font-weight: 650;
+}
+.notice {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 0 5px;
+  margin: 14px 0 26px;
+}
+.panel {
+  padding: 22px;
+  min-height: 260px;
+}
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.badge {
+  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 6px 12px;
+  color: var(--cyan);
+}
+.empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 45px 0;
+}
+.empty span {
+  font-size: 34px;
+  color: var(--cyan);
+}
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.controls button {
+  font-size: 11px;
+  padding: 7px 12px;
+}
+.event {
+  display: grid;
+  grid-template-columns: 75px 1fr;
+  border-top: 1px solid var(--line);
+  padding: 15px 0;
+  gap: 12px;
+}
+.event > span {
+  font: 10px monospace;
+  color: var(--muted);
+  padding-top: 4px;
+}
+.event strong {
+  font-size: 12px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+pre {
+  font:
+    12px/1.7 Consolas,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.event pre {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+.error,
+.approval {
+  border: 1px solid #836842;
+  background: #302719;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.error {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.approval button {
+  margin: 6px 8px 0 0;
+}
+.diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.diff > div {
+  background: var(--input);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+details {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+summary {
+  cursor: pointer;
+  font: 12px monospace;
+}
+.session {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 12px;
+  text-align: left;
+  gap: 20px;
+}
+[data-theme="light"] {
+  color: #182432;
+  background: #f0f3f6;
+  --surface: #fff;
+  --line: #d3dce3;
+  --muted: #526477;
+  --cyan: #167c87;
+  --input: #edf3f5;
+}
+[data-theme="light"] .primary {
+  color: white;
+}
+[data-theme="light"] .active {
+  background: #d8edf0 !important;
+}
+[data-theme="light"] .approval,
+[data-theme="light"] .error {
+  background: #fff4db;
+}
+@media (max-width: 850px) {
+  .shell {
+    grid-template-columns: 170px 1fr;
+  }
+  main {
+    padding: 25px 22px;
+  }
+  aside {
+    padding: 25px 12px;
+  }
+  .brand {
+    font-size: 12px;
+  }
+  .brand img {
+    width: 28px;
+  }
+  .workspace {
+    flex-wrap: wrap;
+  }
+  .composer-footer {
+    gap: 12px;
+  }
+  .diff {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+  }
+}
