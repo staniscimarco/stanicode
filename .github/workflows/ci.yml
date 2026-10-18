@@ -5,6 +5,7 @@ permissions:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
@@ -20,7 +21,7 @@ jobs:
       - run: npm ci --no-fund --no-audit
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m ruff check services tests scripts
-      - run: python -m unittest discover -s tests -v
+      - run: python scripts/ci_tests.py
       - run: npm run test:ui
       - run: npm run build
       - name: Exercise UI in real Chromium with simulated inference
