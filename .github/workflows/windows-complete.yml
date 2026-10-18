@@ -33,6 +33,10 @@ jobs:
         run: python scripts/ci_run.py python scripts/package_agent.py
       - name: Acquire signed Microsoft fixed runtime and its actual notices
         run: python scripts/ci_run.py python scripts/prepare_windows_runtime.py
+      - name: Inventory actual dependency license texts
+        id: licenses
+        continue-on-error: true
+        run: python scripts/ci_run.py python scripts/collect_licenses.py
       - name: Real-model coding, actual tests and independent review
         run: python scripts/ci_run.py python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models
       - name: Compile native Windows desktop
@@ -40,6 +44,9 @@ jobs:
         run: python ../../scripts/ci_run.py node ../../node_modules/@tauri-apps/cli/tauri.js build --no-bundle
       - name: Actual native offline UI and restart, with developer tools hidden
         run: python scripts/ci_run.py python scripts/smoke_native_windows.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
+      - name: Require complete license inventory
+        if: steps.licenses.outcome != 'success'
+        run: throw 'Dependency licenses remain incomplete; distribution is blocked'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

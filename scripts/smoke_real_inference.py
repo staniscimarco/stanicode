@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import time
 import urllib.request
@@ -130,6 +131,15 @@ def main():
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+            evidence_dir = Path(args.evidence).parent
+            evidence_dir.mkdir(parents=True, exist_ok=True)
+            log = root / "state/inference.log"
+            if log.is_file():
+                shutil.copy2(log, evidence_dir / "real-inference-runtime.log")
+            if process.stderr:
+                stderr = process.stderr.read()[-12000:]
+                if stderr:
+                    print("Packaged backend diagnostic:\n" + stderr)
 
 
 if __name__ == "__main__":

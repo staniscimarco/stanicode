@@ -27,7 +27,7 @@ type Task = {
 };
 type Health = {
   backend: boolean;
-  inference: { ready: boolean; detail: string };
+  inference: { ready: boolean; phase?: string; detail: string };
 };
 const words = {
   it: {
@@ -98,6 +98,21 @@ export function App() {
   const [memoryQuery, setMemoryQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const w = words[lang];
+  const modelStatus = health?.inference.ready
+    ? w.offline
+    : health?.inference.phase === "verifying"
+      ? lang === "it"
+        ? "Verifica del modello locale…"
+        : "Verifying local model…"
+      : health?.inference.phase === "loading"
+        ? lang === "it"
+          ? "Caricamento del modello locale…"
+          : "Loading local model…"
+        : !health
+          ? lang === "it"
+            ? "Avvio del motore locale…"
+            : "Starting local engine…"
+          : w.unavailable;
   const statusLabels: Record<string, string> =
     lang === "it"
       ? {
@@ -233,7 +248,7 @@ export function App() {
         </nav>
         <div className="sidebar-bottom">
           <span className={"dot " + (health?.inference.ready ? "ready" : "")} />
-          {health?.inference.ready ? w.offline : w.unavailable}
+          <span role="status">{modelStatus}</span>
           <small>v0.1.0-dev · CPU / local</small>
         </div>
       </aside>
@@ -343,10 +358,25 @@ export function App() {
             <h2>STANICODE</h2>
             <p>Autonomous AI Development Studio</p>
             <p>
-              Development build ·{" "}
+              v0.1.0 ·{" "}
               {lang === "it"
-                ? "Non è ancora una release Windows offline completa."
-                : "Not yet a complete offline Windows release."}
+                ? "Candidato in verifica"
+                : "Candidate under validation"}
+            </p>
+            <p>
+              {lang === "it"
+                ? "Modello locale Qwen2.5-Coder 7B Q4_K_M · llama.cpp · CPU. Nessun abbonamento, account o servizio AI cloud."
+                : "Local Qwen2.5-Coder 7B Q4_K_M model · llama.cpp · CPU. No subscription, account or cloud AI service."}
+            </p>
+            <p>
+              {lang === "it"
+                ? "Il confronto e l’approvazione delle modifiche restano sotto il tuo controllo. La memoria conserva casi verificati dai test; non modifica i pesi del modello."
+                : "You control change review and approval. Memory retains test-backed cases; it does not modify model weights."}
+            </p>
+            <p>
+              {lang === "it"
+                ? "Licenze e inventario delle dipendenze sono inclusi nel pacchetto completo."
+                : "Licenses and dependency inventory are included in the complete package."}
             </p>
           </section>
         ) : tab === "memory" ? (
