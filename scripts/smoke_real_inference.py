@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import sys
+import os
 import tempfile
 import time
 import urllib.request
@@ -131,6 +132,26 @@ def main():
                 "native_desktop_acceptance": False,
                 "clean_windows_acceptance": False,
             }
+            if os.name == "nt":
+                import ctypes
+                from ctypes import wintypes
+                kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+                kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+                kernel.OpenProcess.restype = wintypes.HANDLE
+                kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+                kernel.WaitForSingleObject.restype = wintypes.DWORD
+                kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+                handle = kernel.OpenProcess(0x00100000, False, status["pid"])
+                if not handle:
+                    raise OSError(ctypes.get_last_error(), "Cannot observe supervised model process")
+                try:
+                    process.kill()
+                    process.wait(timeout=10)
+                    if kernel.WaitForSingleObject(handle, 10000) != 0:
+                        raise AssertionError("Backend crash left an orphaned inference process")
+                    evidence["backend_crash_model_cleanup"] = True
+                finally:
+                    kernel.CloseHandle(handle)
             output = Path(args.evidence)
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(json.dumps(evidence, indent=2), encoding="utf-8")

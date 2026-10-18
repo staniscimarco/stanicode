@@ -48,6 +48,25 @@ fn main() {
             if let Some(directory) = executable.parent() {
                 let runtime = directory.join("payload").join("webview2");
                 if runtime.join("msedgewebview2.exe").is_file() {
+                    // Microsoft's Fixed Version >=120 Win32 distribution
+                    // contract requires these read/execute package SIDs on
+                    // Windows 10. Apply only to the bundled public runtime;
+                    // no workspace, model or user-data ACL is changed.
+                    use std::os::windows::process::CommandExt;
+                    let system = std::env::var_os("SystemRoot")
+                        .map(std::path::PathBuf::from)
+                        .unwrap_or_else(|| std::path::PathBuf::from("C:\\Windows"));
+                    let _ = Command::new(system.join("System32").join("icacls.exe"))
+                        .arg(&runtime)
+                        .args([
+                            "/grant",
+                            "*S-1-15-2-2:(OI)(CI)(RX)",
+                            "*S-1-15-2-1:(OI)(CI)(RX)",
+                        ])
+                        .creation_flags(0x08000000)
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .status();
                     std::env::set_var("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER", runtime);
                 }
             }

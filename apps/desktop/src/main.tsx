@@ -378,9 +378,11 @@ export function App() {
                 ? "Licenze e inventario delle dipendenze sono inclusi nel pacchetto completo."
                 : "Licenses and dependency inventory are included in the complete package."}
             </p>
-            <p>{lang === "it"
-              ? "Microsoft WebView2 include Defender SmartScreen e può raccogliere e inviare dati di utilizzo a Microsoft secondo le condizioni incluse e https://aka.ms/privacy. Il lavoro AI locale funziona anche senza Internet."
-              : "Microsoft WebView2 includes Defender SmartScreen and may collect and send usage information to Microsoft under its included terms and https://aka.ms/privacy. The local AI workflow also works without Internet."}</p>
+            <p>
+              {lang === "it"
+                ? "Microsoft WebView2 include Defender SmartScreen e può raccogliere e inviare dati di utilizzo a Microsoft secondo le condizioni incluse e https://aka.ms/privacy. Il lavoro AI locale funziona anche senza Internet."
+                : "Microsoft WebView2 includes Defender SmartScreen and may collect and send usage information to Microsoft under its included terms and https://aka.ms/privacy. The local AI workflow also works without Internet."}
+            </p>
           </section>
         ) : tab === "memory" ? (
           <section className="panel">

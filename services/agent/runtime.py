@@ -10,6 +10,8 @@ from resources import available_ram
 from bundle import verify
 from engine import execution_environment
 import urllib.request
+import os
+import runner
 
 
 class Runtime:
@@ -18,6 +20,7 @@ class Runtime:
         self.process = None
         self.log_path = Path(log_path) if log_path else None
         self.log = None
+        self.cleanup_job = None
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             self.port = probe.getsockname()[1]
@@ -84,7 +87,12 @@ class Runtime:
                 env=execution_environment(),
                 stdout=self.log or subprocess.DEVNULL,
                 stderr=self.log or subprocess.DEVNULL,
+                creationflags=0x08000000 if os.name == "nt" else 0,
             )
+            if os.name == "nt":
+                # The OS closes this handle even if the packaged backend
+                # crashes, preventing an orphaned multi-GB model process.
+                self.cleanup_job = runner.windows_job(self.process)
             # CPU-only startup on a laptop can take several minutes.
             deadline = time.monotonic() + 300
             while time.monotonic() < deadline:
@@ -106,6 +114,7 @@ class Runtime:
                                 "ready": True,
                                 "phase": "ready",
                                 "detail": "Verified local runtime and model loaded",
+                                "pid": self.process.pid,
                             }
                             while not self.stopped.wait(0.5):
                                 if self.process.poll() is not None:
@@ -143,3 +152,6 @@ class Runtime:
         if self.log:
             self.log.close()
             self.log = None
+        cleanup, self.cleanup_job = self.cleanup_job, None
+        if cleanup:
+            cleanup()
