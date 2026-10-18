@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -39,7 +40,9 @@ def main():
             rules = root / "rules.ps1"
             rules.write_text(source, encoding="utf-8")
             programs = root / "programs.json"
-            programs.write_text(json.dumps([str(curl)]), encoding="utf-8")
+            # Product rules cover both clients and servers (backend/CDP).
+            # Exercise response traffic with the server program blocked too.
+            programs.write_text(json.dumps([str(curl), str(Path(sys.executable).resolve())]), encoding="utf-8")
             group = root.name
             command = ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(rules)]
             baseline = subprocess.run([str(curl), "--noproxy", "*", "--fail", "--max-time", "20", "-I", "https://example.com"], capture_output=True)
