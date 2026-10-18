@@ -8,6 +8,7 @@ import tempfile
 
 
 def run(workspace):
+    print("STANICODE unittest: starting approved workspace discovery", file=sys.stderr, flush=True)
     root = Path(workspace).resolve(strict=True)
     os.chdir(root)
     sys.path.insert(0, str(root))

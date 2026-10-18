@@ -426,7 +426,8 @@ class Engine:
                     "execute",
                     "Running "
                     + recipe
-                    + " (30s limit; dependencies are not installed)",
+                    + " (30s limit; dependencies are not installed)\nCommand: "
+                    + json.dumps(command),
                 )
                 # Tests are arbitrary workspace code; user approved this exact operation above.
                 try:

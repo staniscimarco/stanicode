@@ -48,6 +48,9 @@ def main():
         workspace.mkdir()
         executable = root / "STANICODE.exe"
         shutil.copy2(args.executable, executable)
+        for dll in (payload / "models").glob("*.dll"):
+            if dll.name.lower().startswith(("vcruntime", "msvcp", "concrt")):
+                shutil.copy2(dll, root / dll.name)
         # A build-only junction avoids duplicating multi-GB weights. The
         # distributable ZIP contains real files, never this junction.
         subprocess.run(["cmd", "/c", "mklink", "/J", str(root / "payload"), str(payload)], check=True, stdout=subprocess.DEVNULL)

@@ -95,7 +95,10 @@ def build(executable, payload, output):
     output.parent.mkdir(parents=True, exist_ok=True)
     # Stream original payload files directly into ZIP64. Copying a 4.7 GB
     # model into another staging tree can exhaust the Windows build disk.
-    entries = [(executable, "STANICODE.exe")] + [
+    # The native Rust executable also needs app-local CRT DLLs beside it;
+    # placing them only beside llama-server would rely on the owner's system.
+    crt = [p for p in (payload / "models").glob("*.dll") if p.name.lower().startswith(("vcruntime", "msvcp", "concrt"))]
+    entries = [(executable, "STANICODE.exe")] + [(p, p.name) for p in crt] + [
         (path, "payload/" + path.relative_to(payload).as_posix())
         for path in sorted(payload.rglob("*")) if path.is_file()
     ]

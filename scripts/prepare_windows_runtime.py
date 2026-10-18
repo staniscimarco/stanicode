@@ -128,6 +128,9 @@ def main():
     terms = payload / "WebView2-runtime-terms.txt"
     if terms.is_file():
         shutil.copy2(terms, destination / "LICENSE-WebView2-runtime.txt")
+        for dll in (payload / "models").glob("*.dll"):
+            if dll.name.lower().startswith(("vcruntime", "msvcp", "concrt")):
+                shutil.copy2(dll, destination / dll.name)
         manifest = {"version": VERSION, "source": SOURCE, "archive_sha256": CAB_HASH,
                     "license_file": "LICENSE-WebView2-runtime.txt",
                     "files": {p.relative_to(destination).as_posix(): digest(p) for p in sorted(destination.rglob("*")) if p.is_file()}}
