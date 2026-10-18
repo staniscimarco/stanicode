@@ -49,16 +49,32 @@ jobs:
         run: python scripts/ci_run.py python scripts/collect_licenses.py
       - name: Real-model coding, actual tests and independent review
         run: python scripts/ci_run.py python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models
+      - uses: actions/cache/restore@v4
+        id: native_cache
+        with:
+          path: |
+            apps/desktop/src-tauri/target/release/.fingerprint
+            apps/desktop/src-tauri/target/release/deps
+            apps/desktop/src-tauri/target/release/build
+          key: windows-2022-native-v1-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
       - name: Compile native Windows desktop
         working-directory: apps/desktop
         run: python ../../scripts/ci_run.py node ../../node_modules/@tauri-apps/cli/tauri.js build --no-bundle
-      - name: Actual native offline UI and restart, with developer tools hidden
-        run: python scripts/ci_run.py python scripts/smoke_native_windows.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
+      - uses: actions/cache/save@v4
+        if: steps.native_cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            apps/desktop/src-tauri/target/release/.fingerprint
+            apps/desktop/src-tauri/target/release/deps
+            apps/desktop/src-tauri/target/release/build
+          key: windows-2022-native-v1-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
       - name: Audit actual portable PE imports
         run: python scripts/ci_run.py python scripts/audit_windows_dependencies.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
       - name: Require complete license inventory
         if: steps.licenses.outcome != 'success'
         run: throw 'Dependency licenses remain incomplete; distribution is blocked'
+      - name: Actual native offline UI and restart, with developer tools hidden
+        run: python scripts/ci_run.py python scripts/smoke_native_windows.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
       - name: Assemble verified complete Windows candidate
         run: python scripts/ci_run.py python scripts/build_portable.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
       - uses: actions/upload-artifact@v4
