@@ -119,7 +119,15 @@ def main():
             if not parsed.marker or parsed.marker.evaluate({"extra": ""}):
                 pending.append(parsed.name)
     python_license = Path(sys.base_prefix) / "LICENSE.txt"
-    component("runtime", "CPython", sys.version.split()[0], "PSF-2.0", [python_license] if python_license.is_file() else [])
+    python_version = sys.version.split()[0]
+    # Include CPython's incorporated-software acknowledgements as well as the
+    # installed license: the frozen stdlib carries OpenSSL, libffi, zlib, etc.
+    python_acknowledgements = download(
+        f"https://raw.githubusercontent.com/python/cpython/v{python_version}/Doc/license.rst",
+        ROOT / ".local/downloads/licenses/cpython" / python_version / "incorporated-software-license.rst",
+    )
+    component("runtime", "CPython", python_version, "PSF-2.0 and incorporated-software licenses",
+              ([python_license] if python_license.is_file() else []) + [python_acknowledgements])
     rust_root = Path(subprocess.check_output(["rustc", "--print", "sysroot"], text=True).strip())
     rust_version = subprocess.check_output(["rustc", "--version"], text=True).split()[1]
     rust_licenses = license_files(rust_root / "share/doc/rust/licenses")
