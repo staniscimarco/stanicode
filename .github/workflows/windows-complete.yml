@@ -47,8 +47,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/ci_run.py python scripts/collect_licenses.py
-      - name: Real-model coding, actual tests and independent review
-        run: python scripts/ci_run.py python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models
       - uses: actions/cache/restore@v4
         id: native_cache
         with:
@@ -75,6 +73,8 @@ jobs:
         run: throw 'Dependency licenses remain incomplete; distribution is blocked'
       - name: Actual native offline UI and restart, with developer tools hidden
         run: python scripts/ci_run.py python scripts/smoke_native_windows.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
+      - name: Real-model coding, actual tests and independent review
+        run: python scripts/ci_run.py python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models
       - name: Assemble verified complete Windows candidate
         run: python scripts/ci_run.py python scripts/build_portable.py --executable apps/desktop/src-tauri/target/release/stanicode.exe
       - uses: actions/upload-artifact@v4
