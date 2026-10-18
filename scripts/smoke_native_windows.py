@@ -76,8 +76,15 @@ if ($mode -eq 'remove') {
   exit
 }
 if (Get-NetFirewallProfile | Where-Object { -not $_.Enabled }) { throw 'Windows firewall is not enabled' }
+# Windows rejects the IPv6 /0 prefix. Explicit ranges also avoid the
+# unspecified/broadcast IPv4 endpoints while preserving IPv4 loopback.
+$addresses = @('1.0.0.0-126.255.255.255','128.0.0.0-255.255.255.254','::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe')
 foreach ($program in (Get-Content -LiteralPath $programs -Raw | ConvertFrom-Json)) {
-  New-NetFirewallRule -DisplayName ($group+' '+[IO.Path]::GetFileName($program)) -Group $group -Direction Outbound -Action Block -Program $program -RemoteAddress @('0.0.0.0/2','64.0.0.0/3','96.0.0.0/4','112.0.0.0/5','120.0.0.0/6','124.0.0.0/7','126.0.0.0/8','128.0.0.0/1','::/0') | Out-Null
+  foreach ($address in $addresses) {
+    try {
+      New-NetFirewallRule -DisplayName ($group+' '+[IO.Path]::GetFileName($program)+' '+$address) -Group $group -Direction Outbound -Action Block -Program $program -RemoteAddress $address | Out-Null
+    } catch { throw "Firewall rule failed for program '$program', address '$address': $_" }
+  }
 }
 ''', encoding="utf-8")
         programs = root / "firewall-programs.json"
