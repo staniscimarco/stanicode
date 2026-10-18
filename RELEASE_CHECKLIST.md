@@ -9,13 +9,14 @@
 - [x] Approval nonces, serial roles, local Git recovery without changing the index
 - [x] Test-backed local memory with provenance, search/export/deletion
 - [x] Actual model generates a project that passes frozen-backend tests and independent review
-- [ ] Actual native Windows UI/offline acceptance, shutdown and restart
-- [ ] Complete applicable runtime/dependency license texts and CycloneDX SBOM
+- [x] Actual native Windows UI/offline acceptance, shutdown and restart (hosted runner)
+- [x] Complete applicable runtime/dependency license texts and CycloneDX SBOM
 - [ ] Complete portable archive, actual download URL, size and SHA-256
-- [ ] Missing-DLL audit and dedicated clean Windows 10/11 acceptance
-- [ ] Full real-model security and regression review
+- [x] Actual portable PE import audit
+- [ ] Dedicated clean Windows 10/11 acceptance
+- [x] Implemented security boundary reviewed and regression-tested, plus real-model/native smoke; no penetration-test or OS sandbox claim
 - [x] Editable vector master and small-size/accessibility branding review (owner approval remains separate)
 - [x] Advanced local Ollama adapter implemented and protocol-tested; installed-service acceptance remains unrun
-- [ ] Experimental reviewed-dataset and model-training/merge preparation
+- [x] Experimental reviewed-dataset and LoRA/MergeKit preparation; actual training/merge/GPU evaluation unrun
 
 Do not publish a completed release or claim production readiness until the required acceptance evidence exists. Hosted-runner tests are distinct from clean-machine and owner hardware tests. Optional research training may remain unsupported when hardware is unsuitable; report that honestly.
