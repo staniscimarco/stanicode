@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import shutil
+import sys
 import tempfile
 import time
 import urllib.request
@@ -62,6 +63,19 @@ def main():
                 if process.poll() is not None or time.monotonic() > deadline:
                     raise TimeoutError("Actual model did not become ready")
                 time.sleep(0.5)
+            # Distinguish a frozen-interpreter/process-launch failure from
+            # incorrect generated tests while the full model occupies RAM.
+            preflight = root / "interpreter-check"
+            preflight.mkdir()
+            (preflight / "test_packaged.py").write_text("import unittest\nclass Packaged(unittest.TestCase):\n    def test_ready(self): self.assertEqual(2+3,5)\n")
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "services/agent"))
+            from engine import execution_environment
+            import runner
+            started = time.monotonic()
+            code, output = runner.run([str(Path(args.agent).resolve()), "--run-tests", str(preflight)], preflight, execution_environment(), timeout=90)
+            print(f"Actual bundled interpreter with model loaded: {time.monotonic()-started:.1f}s, exit={code}\n{output}", flush=True)
+            if code or "Ran 1 test" not in output:
+                raise RuntimeError("Bundled interpreter preflight failed")
             created = request(
                 "/tasks",
                 {
@@ -100,8 +114,11 @@ def main():
                     raise TimeoutError("Real model acceptance timed out")
                 time.sleep(0.3)
             if task["state"] != "completed":
+                failed = Path(args.evidence).parent / "real-inference-failed-task.json"
+                failed.parent.mkdir(parents=True, exist_ok=True)
+                failed.write_text(json.dumps(task, indent=2), encoding="utf-8")
                 raise RuntimeError(
-                    "Real-model acceptance failed: " + json.dumps(task["events"][-3:])
+                    "Real-model acceptance failed: " + json.dumps({"events": task["events"][-3:], "generated_files": task["changes"]})
                 )
             if not (workspace / "calculator.py").is_file():
                 raise AssertionError("Real model did not create the requested project")
