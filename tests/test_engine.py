@@ -105,7 +105,7 @@ class Tests(unittest.TestCase):
     def test_nested_project_files_reach_model_context(self):
         ws = Workspace(self.root / "workspace")
         ws.write("src/nested/calculator.py", "def add(a, b):\n    return a + b\n")
-        ws.write("src/.env", "SECRET=not-for-model")
+        (ws.root / "src" / ".env").write_text("SECRET=not-for-model")
         context = ws.context()
         self.assertIn("src/nested/calculator.py", context)
         self.assertNotIn("src/.env", context)
