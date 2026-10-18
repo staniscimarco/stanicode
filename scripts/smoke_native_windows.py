@@ -16,11 +16,13 @@ import urllib.request
 
 
 def wait_for_cdp(port, process):
-    for _ in range(180):
+    direct = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    deadline = time.monotonic() + 90
+    while time.monotonic() < deadline:
         if process.poll() is not None:
             raise RuntimeError("Actual native desktop exited during startup")
         try:
-            with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=1) as response:
+            with direct.open(f"http://127.0.0.1:{port}/json/version", timeout=1) as response:
                 if response.status == 200:
                     return
         except OSError:
@@ -94,10 +96,20 @@ foreach ($program in (Get-Content -LiteralPath $programs -Raw | ConvertFrom-Json
         )]), encoding="utf-8")
 
         def launch():
-            app = subprocess.Popen([str(executable)], env=environment)
+            log = evidence / "native-launch.log"
+            with log.open("ab") as output:
+                app = subprocess.Popen([str(executable)], env=environment, stdout=output, stderr=subprocess.STDOUT)
             try:
                 wait_for_cdp(port, app)
             except Exception:
+                print("Native startup log:\n" + log.read_text(encoding="utf-8", errors="replace")[-6000:], flush=True)
+                print("Native windows: " + repr([(window.process_id(), window.window_text()) for window in Desktop(backend="win32").windows()]), flush=True)
+                diagnostic = root / "startup-diagnostic.ps1"
+                diagnostic.write_text('''$ErrorActionPreference='Continue'
+Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'stanicode|llama|msedgewebview' } | Select-Object Name,ProcessId,ParentProcessId,ExecutablePath | Format-Table -AutoSize
+Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State,OwningProcess | Format-Table -AutoSize
+''', encoding="utf-8")
+                subprocess.run(["pwsh", "-NoProfile", "-File", str(diagnostic)], check=False)
                 subprocess.run(["taskkill", "/PID", str(app.pid), "/T", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 raise
             return app
