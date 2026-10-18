@@ -37,3 +37,7 @@ This is implemented application code, **not a completed or accepted Windows rele
 Run `scripts/smoke_real_inference.py` on the actual packaged backend and licensed model. Build and inspect the Windows portable candidate, include a verified fixed WebView2 runtime, dependency license texts and complete CycloneDX SBOM, then execute clean Windows native/offline acceptance before any release. The current assembler checks structure/integrity, not runtime correctness or legal sufficiency.
 
 A complete editable SVG brand master, full accessibility review, a safe advanced Ollama integration, stronger project isolation and comprehensive real-model regressions remain unfinished. Training/merging research modules are deliberately deferred until the baseline release works, as the supplied specification requires. No production-readiness claim is made. See RELEASE_CHECKLIST.md.
+
+## Network recheck after configuration publication
+
+The environment configuration was subsequently published and contains the required custom domains. Explicit network permission was also granted for the current turn. Nevertheless the running machine still receives proxy CONNECT 403 for api.github.com, huggingface.co and developer.microsoft.com. The standard package-registry control succeeds. Re-saving the same domain list is not the next diagnostic step: the machine/proxy must be reconnected or reprovisioned against the published configuration, or the platform egress-policy mismatch investigated. No model download, Windows execution or completed release is claimed.
