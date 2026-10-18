@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(async () => ({ port: 12345, token: "test-only-token" })),
@@ -16,6 +16,10 @@ describe("Desktop controls (native bridge and HTTP mocked)", () => {
   let projectTools: unknown;
   let calls: { path: string; body: any }[];
   beforeEach(() => {
+    if (!HTMLDialogElement.prototype.showModal)
+      HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+    if (!HTMLDialogElement.prototype.close)
+      HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
     localStorage.clear();
     ready = true;
     tasks = [];
@@ -72,21 +76,21 @@ describe("Desktop controls (native bridge and HTTP mocked)", () => {
   });
   it("does not provision a project SDK when the user declines", async () => {
     projectTools = { supported: true, installed: false, busy: false, version: "24.19.0", phase: "not-installed", error: "" };
-    vi.stubGlobal("confirm", vi.fn(() => false));
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "Impostazioni", exact: true }));
     await user.click(await screen.findByRole("button", { name: "Configura Node.js e npm" }));
-    await waitFor(() => expect(window.confirm).toHaveBeenCalled());
+    const sdkDialog = await screen.findByRole("dialog", { name: "Conferma operazione" });
+    await user.click(within(sdkDialog).getByRole("button", { name: "Annulla", exact: true }));
     expect(calls.some((call) => call.path === "/project-tools/node/install")).toBe(false);
   });
   it("sends the exact SDK proposal approval after consent", async () => {
     projectTools = { supported: true, installed: false, busy: false, version: "24.19.0", phase: "not-installed", error: "" };
-    vi.stubGlobal("confirm", vi.fn(() => true));
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "Impostazioni", exact: true }));
     await user.click(await screen.findByRole("button", { name: "Configura Node.js e npm" }));
+    await user.click(await screen.findByRole("button", { name: "Autorizza", exact: true }));
     await waitFor(() => expect(calls.some((call) => call.path === "/project-tools/node/install" && call.body.approval_id === "fixture-sdk-approval")).toBe(true));
   });
   it("blocks start when real runtime status is unavailable", async () => {
@@ -101,6 +105,21 @@ describe("Desktop controls (native bridge and HTTP mocked)", () => {
         .hasAttribute("disabled"),
     ).toBe(true);
     expect(screen.getByText("Modello locale non disponibile")).toBeTruthy();
+  });
+  it("requires explicit dialog approval before restoring task files", async () => {
+    tasks = [{ id: "completed-task", prompt: "fixture completed task", workspace: "/test/workspace", state: "completed",
+      events: [], changes: [{ path: "example.py", before: null, after: "print(42)" }], pending: null, approval_id: null }];
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Ripristina file" }));
+    const restoreDialog = await screen.findByRole("dialog", { name: "Conferma operazione" });
+    expect(screen.getByTestId("confirmation-message").textContent).toContain("example.py");
+    expect(calls.some((call) => call.path === "/rollback")).toBe(false);
+    await user.click(within(restoreDialog).getByRole("button", { name: "Annulla", exact: true }));
+    expect(calls.some((call) => call.path === "/rollback")).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Ripristina file" }));
+    await user.click(await screen.findByRole("button", { name: "Autorizza", exact: true }));
+    await waitFor(() => expect(calls.some((call) => call.path === "/rollback" && call.body.id === "completed-task")).toBe(true));
   });
   it("shows proposed content and sends approval only after a click", async () => {
     tasks = [

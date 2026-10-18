@@ -79,8 +79,8 @@ class ProjectTools:
         if manifest_path.stat().st_size > 20_000_000:
             raise ValueError('Invalid project SDK manifest')
         manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-        if (manifest.get('owner') != OWNER or manifest.get('directory') != DESTINATION
-                or manifest.get('archive_sha256') != SHA256 or not manifest.get('files')):
+        if (not isinstance(manifest, dict) or manifest.get('owner') != OWNER or manifest.get('directory') != DESTINATION
+                or manifest.get('archive_sha256') != SHA256 or not isinstance(manifest.get('files'), dict) or not manifest['files']):
             raise ValueError('Invalid project SDK provenance')
         directory = self.root / DESTINATION
         for name, expected in manifest['files'].items():
@@ -146,7 +146,7 @@ class ProjectTools:
                 if old_manifest.is_file() and old_manifest.stat().st_size > 20_000_000:
                     raise ValueError('Existing oversized SDK manifest preserved')
                 old = json.loads(old_manifest.read_text()) if old_manifest.is_file() else {}
-                if old.get('owner') != OWNER or old.get('directory') != DESTINATION:
+                if not isinstance(old, dict) or old.get('owner') != OWNER or old.get('directory') != DESTINATION:
                     raise ValueError('Existing unmanaged SDK directory preserved; choose a different application data directory')
             with tempfile.TemporaryDirectory(prefix='approved-node-', dir=self.root, ignore_cleanup_errors=True) as directory:
                 temporary = Path(directory)

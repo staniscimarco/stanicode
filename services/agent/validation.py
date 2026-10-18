@@ -62,5 +62,16 @@ def passed(recipe, code, output):
     if recipe == "cargo-test":
         counts = re.findall(r"test result: ok\. (\d+) passed", output)
         return bool(counts and sum(map(int, counts)) > 0)
-    # A project-defined npm script is an executed check; no test count is asserted.
-    return True
+    if recipe == "npm-test":
+        clean = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output)
+        if (re.search(r"^# fail [1-9]\d*\s*$", clean, re.M)
+                or re.search(r"^\s*(?:Tests:|Test Suites:|Tests |Test Files ).*\b[1-9]\d*\s+failed\b", clean, re.M)
+                or re.search(r"^\s*[1-9]\d*\s+failing\b", clean, re.M)):
+            return False
+        if passed("node-test", code, clean):
+            return True
+        patterns = (r"^\s*Tests:\s+.*?\b(\d+)\s+passed\b",
+                    r"^\s*Tests\s+.*?\b(\d+)\s+passed\b",
+                    r"^\s*(\d+)\s+passing(?:\s|\(|$)")
+        return any(any(int(count) > 0 for count in re.findall(pattern, clean, re.M)) for pattern in patterns)
+    return False

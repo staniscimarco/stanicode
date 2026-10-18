@@ -142,8 +142,8 @@ def main():
                 page.screenshot(
                     path=str(artifact / "browser-fixture.png"), full_page=True
                 )
-                page.on("dialog", lambda dialog: dialog.accept())
                 page.get_by_role("button", name="Restore files", exact=True).click()
+                page.get_by_role("dialog", name="Confirm operation").get_by_role("button", name="Approve", exact=True).click()
                 page.locator('.badge[data-state="rolled_back"]').wait_for(timeout=10000)
                 assert not (workspace / "calculator.py").exists()
                 assert not failures, failures

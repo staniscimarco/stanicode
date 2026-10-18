@@ -74,6 +74,12 @@ class ProjectToolsTests(unittest.TestCase):
             signature.assert_not_called()
         self.assertFalse((self.tools.root / 'node').exists())
 
+    def test_malformed_optional_sdk_metadata_is_a_validation_error(self):
+        self.tools.root.mkdir(parents=True)
+        (self.tools.root / 'node-installation.json').write_text('[]')
+        with self.assertRaisesRegex(ValueError, 'provenance'):
+            self.tools.verify_installed()
+
     def test_archive_traversal_is_rejected_before_extraction(self):
         source = self.root / 'bad.zip'
         source.write_bytes(self.archive(traversal=True))
@@ -120,7 +126,7 @@ class ProjectToolsTests(unittest.TestCase):
 
     def test_common_toolchain_credential_files_are_not_workspace_context(self):
         workspace = Workspace(self.root)
-        for name in ('.npmrc', '.pypirc', '.netrc', '.git-credentials', '.kube/config', 'id_ed25519'):
+        for name in ('.npmrc', '.pypirc', '.netrc', '.git-credentials', '.cargo/credentials.toml', '.kube/config', 'id_ed25519'):
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Protected'):
                 workspace.path(name)
 

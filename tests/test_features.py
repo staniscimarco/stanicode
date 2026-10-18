@@ -123,6 +123,17 @@ class Features(unittest.TestCase):
     def test_empty_node_suite_not_success(self):
         self.assertFalse(validation.passed("node-test", 0, "# tests 0\n# fail 0\n"))
 
+    def test_npm_exit_zero_without_tests_or_with_failures_is_not_success(self):
+        for output in ("success\n", "# tests 0\n# fail 0\n", "Tests: 1 failed, 2 passed, 3 total\n"):
+            with self.subTest(output=output):
+                self.assertFalse(validation.passed("npm-test", 0, output))
+
+    def test_npm_recognizes_actual_test_reporter_counts(self):
+        for output in ("# tests 1\n# fail 0\n", "Tests: 2 passed, 2 total\n",
+                       "\x1b[32mTests\x1b[0m 3 passed (3)\n", "  4 passing (25ms)\n"):
+            with self.subTest(output=output):
+                self.assertTrue(validation.passed("npm-test", 0, output))
+
     def test_empty_cargo_suite_not_success(self):
         self.assertFalse(
             validation.passed("cargo-test", 0, "test result: ok. 0 passed; 0 failed")

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -104,6 +104,28 @@ export function App() {
   const [memoryQuery, setMemoryQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [toolBusy, setToolBusy] = useState(false);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const confirmationDialog = useRef<HTMLDialogElement>(null);
+  const confirmationResult = useRef<((approved: boolean) => void) | null>(null);
+  function ask(message: string): Promise<boolean> {
+    if (confirmationResult.current) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      confirmationResult.current = resolve;
+      setConfirmation(message);
+    });
+  }
+  function answer(approved: boolean) {
+    const resolve = confirmationResult.current;
+    confirmationResult.current = null;
+    if (confirmationDialog.current?.open) confirmationDialog.current.close();
+    setConfirmation(null);
+    resolve?.(approved);
+  }
+  useEffect(() => {
+    if (confirmation && confirmationDialog.current && !confirmationDialog.current.open)
+      confirmationDialog.current.showModal();
+  }, [confirmation]);
+  useEffect(() => () => { confirmationResult.current?.(false); }, []);
   const w = words[lang];
   const modelStatus = health?.inference.ready
     ? w.offline
@@ -368,7 +390,7 @@ export function App() {
                       const message = lang === "it"
                         ? `Autorizzi lo scaricamento di Node.js ${proposal.version} e npm da nodejs.org?\nDestinazione: ${proposal.destination}\nIl pacchetto e la firma verranno verificati. Nessuna modifica al PATH di sistema e nessun privilegio di amministratore.`
                         : `Approve downloading Node.js ${proposal.version} and npm from nodejs.org?\nDestination: ${proposal.destination}\nThe package and signature will be verified. No system PATH changes or administrator privileges.`;
-                      if (confirm(message)) {
+                      if (await ask(message)) {
                         await api("/project-tools/node/install", { approval_id: proposal.approval_id });
                         setError("");
                       }
@@ -473,7 +495,7 @@ export function App() {
             <button
               onClick={async () => {
                 if (
-                  confirm(
+                  await ask(
                     lang === "it"
                       ? "Eliminare tutti i casi salvati?"
                       : "Delete all saved cases?",
@@ -542,7 +564,7 @@ export function App() {
                       ) || !task.changes.length
                     }
                     onClick={async () => {
-                      if (confirm(w.rollback + "?")) {
+                      if (await ask(`${w.rollback}?\n${task.workspace}\n${[...new Set(task.changes.map((change) => change.path))].join("\n")}`)) {
                         try {
                           await api("/rollback", { id: task.id });
                         } catch (e) {
@@ -612,6 +634,17 @@ export function App() {
           </section>
         )}
       </main>
+      {confirmation && (
+        <dialog ref={confirmationDialog} className="confirmation" aria-labelledby="confirmation-title"
+          onCancel={(event) => { event.preventDefault(); answer(false); }}>
+          <h2 id="confirmation-title">{lang === "it" ? "Conferma operazione" : "Confirm operation"}</h2>
+          <pre data-testid="confirmation-message">{confirmation}</pre>
+          <div className="confirmation-actions">
+            <button type="button" autoFocus onClick={() => answer(false)}>{w.cancel}</button>
+            <button type="button" className="primary" onClick={() => answer(true)}>{lang === "it" ? "Autorizza" : "Approve"}</button>
+          </div>
+        </dialog>
+      )}
     </div>
   );
 }

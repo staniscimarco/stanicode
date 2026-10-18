@@ -201,20 +201,17 @@ Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Obj
                 page.get_by_role("button", name="Settings", exact=True).click()
                 page.get_by_label("Theme").select_option("light")
                 expect(page.locator("html")).to_have_attribute("data-theme", "light")
-                dialogs = []
-                def decline_sdk(dialog):
-                    dialogs.append(dialog.message)
-                    dialog.dismiss()
-                page.once("dialog", decline_sdk)
                 sdk = page.get_by_role("button", name="Set up Node.js and npm", exact=True)
                 sdk.click()
-                deadline = time.monotonic() + 20
-                while not dialogs and time.monotonic() < deadline:
-                    page.wait_for_timeout(100)
-                if not dialogs or "nodejs.org" not in dialogs[0]:
-                    raise AssertionError("Actual SDK approval dialog was not shown")
+                confirmation = page.get_by_role("dialog", name="Confirm operation")
+                expect(confirmation).to_be_visible(timeout=15000)
+                message = confirmation.get_by_test_id("confirmation-message").text_content()
+                if "nodejs.org" not in message:
+                    raise AssertionError("SDK approval must identify its official source")
+                destination = next(line.removeprefix("Destination: ") for line in message.splitlines() if line.startswith("Destination: "))
+                confirmation.get_by_role("button", name="Cancel", exact=True).click()
+                expect(confirmation).not_to_be_visible()
                 expect(sdk).to_be_enabled(timeout=15000)
-                destination = next(line.removeprefix("Destination: ") for line in dialogs[0].splitlines() if line.startswith("Destination: "))
                 if Path(destination).parent.exists():
                     raise AssertionError("Declined SDK setup wrote installation data")
                 report["sdk_decline_without_install"] = True
@@ -226,9 +223,28 @@ Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Obj
                 app = launch()
                 browser = playwright.chromium.connect_over_cdp(f"http://127.0.0.1:{port}")
                 page = browser.contexts[0].pages[0]
+                page.on("pageerror", lambda error: errors.append(str(error)))
                 page.get_by_role("button", name="Sessions", exact=True).click()
                 expect(page.locator(".session").first).to_contain_text("Create calculator.py", timeout=30000)
                 report["restart_history"] = True
+                page.locator(".session").first.click()
+                page.get_by_role("button", name="Restore files", exact=True).click()
+                confirmation = page.get_by_role("dialog", name="Confirm operation")
+                expect(confirmation).to_contain_text("calculator.py")
+                confirmation.get_by_role("button", name="Approve", exact=True).click()
+                expect(page.locator(".badge")).to_have_attribute("data-state", "rolled_back", timeout=30000)
+                if (workspace / "calculator.py").exists() or (workspace / "test_calculator.py").exists():
+                    raise AssertionError("Approved native rollback did not restore the empty workspace")
+                report["native_rollback_after_restart"] = True
+                page.get_by_role("button", name="Memory", exact=True).click()
+                expect(page.locator(".panel details").first).to_be_visible(timeout=30000)
+                page.get_by_role("button", name="Delete memory", exact=True).click()
+                confirmation = page.get_by_role("dialog", name="Confirm operation")
+                confirmation.get_by_role("button", name="Approve", exact=True).click()
+                expect(page.locator(".panel details")).to_have_count(0, timeout=30000)
+                page.get_by_role("button", name="Sessions", exact=True).click()
+                expect(page.locator(".session").first).to_contain_text("Create calculator.py")
+                report["native_memory_deletion_preserves_history"] = True
                 report["javascript_errors"] = errors
                 if errors:
                     raise AssertionError(errors)

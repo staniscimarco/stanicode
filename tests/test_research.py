@@ -66,6 +66,12 @@ class ResearchPreparationTests(unittest.TestCase):
             self.prepare(False)
         self.assertFalse((self.root / 'output').exists())
 
+    def test_known_browser_simulation_marker_is_not_training_data(self):
+        self.memory[0]['metadata']['model'] = 'SIMULATED INFERENCE — browser test only'
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'reviewed'):
+            self.prepare()
+
     def test_tampered_or_failed_reports_are_rejected(self):
         self.report['changes'][0]['after'] += '# changed after review'
         self.save()

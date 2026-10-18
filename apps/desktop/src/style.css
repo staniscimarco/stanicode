@@ -16,6 +16,17 @@
 * {
   box-sizing: border-box;
 }
+.confirmation {
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: min(640px, calc(100vw - 40px));
+}
+.confirmation::backdrop { background: #000a; }
+.confirmation pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; max-height: 55vh; }
+.confirmation-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
 body {
   margin: 0;
 }

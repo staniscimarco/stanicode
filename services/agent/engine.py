@@ -157,6 +157,7 @@ class Workspace:
                 "id_ecdsa",
                 "id_dsa",
                 "credentials.json",
+                "credentials.toml",
             }
             or p.startswith(".env.")
             or p.endswith((".pem", ".key", ".p12", ".pfx"))

@@ -59,7 +59,8 @@ def dataset(memory, reports):
         if (task['state'] != 'completed' or metadata.get('source') != 'local-test-and-review'
                 or metadata.get('weight_training') is not False
                 or not {'test', 'independent-review', 'review'}.issubset(phases)
-                or not case.get('evidence') or metadata.get('model') == 'test fixture'):
+                or not case.get('evidence') or any(marker in str(metadata.get('model', '')).casefold()
+                                                 for marker in ('test fixture', 'simulated inference'))):
             raise ValueError('Only completed, test-backed, independently reviewed cases are eligible')
         expected = [{'path': change['path'], 'sha256': hashlib.sha256(change['after'].encode()).hexdigest()}
                     for change in task['changes']]
