@@ -127,9 +127,14 @@ def build(executable, payload, output):
         pending.replace(output)
     finally:
         pending.unlink(missing_ok=True)
+    archive_hash = sha256(output)
     output.with_suffix(output.suffix + ".sha256").write_text(
-        sha256(output) + "  " + output.name + "\n"
+        archive_hash + "  " + output.name + "\n"
     )
+    metadata = {"file": output.name, "bytes": output.stat().st_size,
+                "sha256": archive_hash, "status": "candidate-clean-windows-acceptance-pending"}
+    output.with_suffix(output.suffix + ".json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    print("::notice title=Verified portable candidate::" + json.dumps(metadata))
     print("Verified payload assembled as an UNACCEPTED Windows candidate:", output.name)
     return output
 
