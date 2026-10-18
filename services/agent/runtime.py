@@ -13,9 +13,11 @@ import urllib.request
 
 
 class Runtime:
-    def __init__(self, bundle):
+    def __init__(self, bundle, log_path=None):
         self.bundle = Path(bundle)
         self.process = None
+        self.log_path = Path(log_path) if log_path else None
+        self.log = None
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             self.port = probe.getsockname()[1]
@@ -60,6 +62,9 @@ class Runtime:
                 "phase": "loading",
                 "detail": "Loading the verified local coding model",
             }
+            if self.log_path:
+                self.log_path.parent.mkdir(parents=True, exist_ok=True)
+                self.log = self.log_path.open("wb")
             self.process = subprocess.Popen(
                 [
                     str(paths[0]),
@@ -77,15 +82,17 @@ class Runtime:
                     self.api_key,
                 ],
                 env=execution_environment(),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=self.log or subprocess.DEVNULL,
+                stderr=self.log or subprocess.DEVNULL,
             )
-            for _ in range(120):
+            # CPU-only startup on a laptop can take several minutes.
+            deadline = time.monotonic() + 300
+            while time.monotonic() < deadline:
                 if self.stopped.is_set():
                     self.stop()
                     return
                 if self.process.poll() is not None:
-                    raise RuntimeError("Inference process exited before readiness")
+                    raise RuntimeError(f"Inference process exited before readiness (code {self.process.returncode}); see inference.log")
                 try:
                     with urllib.request.urlopen(
                         urllib.request.Request(
@@ -133,3 +140,6 @@ class Runtime:
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait()
+        if self.log:
+            self.log.close()
+            self.log = None

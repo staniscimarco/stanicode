@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import urllib.request
 import zipfile
 
@@ -42,8 +43,11 @@ def download(url, destination, expected=None):
 
 def verify_microsoft(path):
     # Paths are passed as arguments, never interpolated into PowerShell source.
-    script = "& { param($file) $s=Get-AuthenticodeSignature -LiteralPath $file; if($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw ('Invalid Microsoft signature: '+$file) } }"
-    subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script, str(Path(path).resolve())], check=True)
+    script = "param([string]$file)\n$ErrorActionPreference='Stop'\nImport-Module Microsoft.PowerShell.Security\n$s=Get-AuthenticodeSignature -LiteralPath $file\nif($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw ('Invalid Microsoft signature: '+$file+' ('+$s.Status+')') }"
+    with tempfile.TemporaryDirectory(prefix="stanicode-signature-") as directory:
+        command = Path(directory) / "verify.ps1"
+        command.write_text(script, encoding="utf-8")
+        subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-File", str(command), str(Path(path).resolve())], check=True)
 
 
 def prepare(destination, cache):

@@ -102,6 +102,14 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ws.path("link/escape")
 
+    def test_nested_project_files_reach_model_context(self):
+        ws = Workspace(self.root / "workspace")
+        ws.write("src/nested/calculator.py", "def add(a, b):\n    return a + b\n")
+        ws.write("src/.env", "SECRET=not-for-model")
+        context = ws.context()
+        self.assertIn("src/nested/calculator.py", context)
+        self.assertNotIn("src/.env", context)
+
     def test_cancel_pending(self):
         task = self.engine.create(str(self.root / "workspace"), "test")
         self.wait(task, {"awaiting_approval"})

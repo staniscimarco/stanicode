@@ -21,7 +21,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: python scripts/ci_tests.py
       - run: npm run test:ui
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
           path: |
             .local/downloads
@@ -44,3 +44,10 @@ jobs:
           name: actual-inference-evidence
           path: .local/evidence/
           if-no-files-found: ignore
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            .local/downloads
+            models/*.gguf
+          key: windows-cpu-b11669-qwen7b-13fb94bfda8c8cf2

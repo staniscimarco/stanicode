@@ -194,11 +194,12 @@ class Workspace:
             for name in sorted(files):
                 p = Path(directory) / name
                 try:
-                    safe = self.path(str(p.relative_to(self.root)))
+                    relative = p.relative_to(self.root).as_posix()
+                    safe = self.path(relative)
                     if safe.stat().st_size < 16000:
                         text = safe.read_text()
                         if len(text) <= remaining:
-                            result[str(p.relative_to(self.root))] = text
+                            result[relative] = text
                             remaining -= len(text)
                 except (ValueError, UnicodeError, OSError):
                     pass

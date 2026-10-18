@@ -158,7 +158,7 @@ def main():
         "--bundle", default=str(Path(__file__).resolve().parents[2] / "models")
     )
     args = parser.parse_args()
-    runtime = Runtime(args.bundle)
+    runtime = Runtime(args.bundle, Path(args.data) / "inference.log")
     engine = Engine(
         Store(Path(args.data) / "tasks.sqlite3"),
         LlamaModel(
