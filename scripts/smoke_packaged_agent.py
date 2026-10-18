@@ -15,6 +15,10 @@ research_help = subprocess.run([str(exe), "--research", "--help"], capture_outpu
 if research_help.returncode or "prepare-merge" not in research_help.stdout:
     raise RuntimeError("Packaged experimental preparation command missing: " + research_help.stderr)
 print("Packaged research preparation entry point: OK; no training executed")
+tools_help = subprocess.run([str(exe), "--project-tools", "--help"], capture_output=True, text=True, timeout=30)
+if tools_help.returncode or "approve-setup" not in tools_help.stdout:
+    raise RuntimeError("Packaged approved project SDK setup command missing: " + tools_help.stderr)
+print("Packaged project SDK entry point: OK; no download requested")
 with tempfile.TemporaryDirectory(prefix="stanicode-packaged-smoke-") as directory:
     root = Path(directory)
     project = root / "project"

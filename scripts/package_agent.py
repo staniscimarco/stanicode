@@ -48,6 +48,7 @@ for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
 research_docs = out / "research"
 research_docs.mkdir(exist_ok=True)
 shutil.copy2(root / "docs" / "EXPERIMENTAL_RESEARCH.md", research_docs / "README.md")
+shutil.copy2(root / "docs" / "PROJECT_TOOLS.md", research_docs / "PROJECT_TOOLS.md")
 models = root / "models"
 if (models / "manifest.json").exists():
     from verify_bundle import verify

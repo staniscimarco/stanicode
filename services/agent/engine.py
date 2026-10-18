@@ -146,6 +146,16 @@ class Workspace:
                 ".ssh",
                 ".aws",
                 ".codex",
+                ".npmrc",
+                ".pypirc",
+                ".netrc",
+                ".git-credentials",
+                ".kube",
+                ".azure",
+                "id_rsa",
+                "id_ed25519",
+                "id_ecdsa",
+                "id_dsa",
                 "credentials.json",
             }
             or p.startswith(".env.")
@@ -216,13 +226,18 @@ class Workspace:
 
 
 class Engine:
-    def __init__(self, store, model):
+    def __init__(self, store, model, project_tools=None):
         self.store, self.model = store, model
+        self.project_tools = project_tools
         self.memory = CaseMemory(store)
         self.tasks = {t["id"]: t for t in store.history()}
         self.controls = {}
         self.workers = {}
         self.lock = threading.Lock()
+
+    def validation_environment(self):
+        environment = execution_environment()
+        return self.project_tools.environment(environment) if self.project_tools else environment
 
     def emit(self, task, phase, message):
         task["events"].append({"time": time.time(), "phase": phase, "message": message})
@@ -359,7 +374,7 @@ class Engine:
                 ):
                     raise ValueError("Invalid model action schema")
                 recipe = plan.get("test")
-                command = validation.command(recipe, ws.root)
+                command = validation.command(recipe, ws.root, self.validation_environment().get("PATH"))
                 self.emit(
                     task,
                     "implementer",
@@ -405,7 +420,7 @@ class Engine:
                         ws.root,
                         [c["path"] for c in pending],
                         task["id"],
-                        execution_environment(),
+                        self.validation_environment(),
                     )
                     checkpoint_created = True
                     if checkpoint:
@@ -441,7 +456,7 @@ class Engine:
                     returncode, output = runner.run(
                         command,
                         ws.root,
-                        execution_environment(),
+                        self.validation_environment(),
                         cancel=lambda: self.controls[task["id"]]["cancel"],
                     )
                 except TimeoutError as error:

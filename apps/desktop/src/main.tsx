@@ -27,6 +27,7 @@ type Task = {
 };
 type Health = {
   backend: boolean;
+  project_tools?: { supported: boolean; installed: boolean; version: string; phase: string; error: string; busy: boolean } | null;
   inference: {
     ready: boolean;
     phase?: string;
@@ -102,6 +103,7 @@ export function App() {
   const [memory, setMemory] = useState<MemoryCase[]>([]);
   const [memoryQuery, setMemoryQuery] = useState("");
   const [busy, setBusy] = useState(false);
+  const [toolBusy, setToolBusy] = useState(false);
   const w = words[lang];
   const modelStatus = health?.inference.ready
     ? w.offline
@@ -312,7 +314,7 @@ export function App() {
               className="primary"
               disabled={
                 busy ||
-                !workspace ||
+                toolBusy || health?.project_tools?.busy || !workspace ||
                 !prompt.trim() ||
                 !health?.inference.ready ||
                 tasks.some((t) =>
@@ -352,6 +354,36 @@ export function App() {
               </select>
             </label>
             <p>{health?.inference.detail}</p>
+            {health?.project_tools?.supported && (
+              <div className="project-tools">
+                <h3>{lang === "it" ? "Strumenti per i progetti JavaScript" : "JavaScript project tools"}</h3>
+                <p>{lang === "it"
+                  ? "Node.js e npm servono per verificare i progetti JavaScript. La configurazione scarica il pacchetto ufficiale e lo usa solo nei processi di verifica dell’app. STANICODE si avvia anche senza questi strumenti."
+                  : "Node.js and npm validate JavaScript projects. Setup downloads the official package and uses it only in the app’s validation processes. STANICODE can start without these tools."}</p>
+                <button disabled={toolBusy || health.project_tools.busy || tasks.some((item) => ["running", "paused", "awaiting_approval"].includes(item.state))}
+                  onClick={async () => {
+                    setToolBusy(true);
+                    try {
+                      const proposal = await api<{ approval_id: string; version: string; destination: string }>("/project-tools/node/propose", {});
+                      const message = lang === "it"
+                        ? `Autorizzi lo scaricamento di Node.js ${proposal.version} e npm da nodejs.org?\nDestinazione: ${proposal.destination}\nIl pacchetto e la firma verranno verificati. Nessuna modifica al PATH di sistema e nessun privilegio di amministratore.`
+                        : `Approve downloading Node.js ${proposal.version} and npm from nodejs.org?\nDestination: ${proposal.destination}\nThe package and signature will be verified. No system PATH changes or administrator privileges.`;
+                      if (confirm(message)) {
+                        await api("/project-tools/node/install", { approval_id: proposal.approval_id });
+                        setError("");
+                      }
+                    } catch (e) { setError(String(e)); }
+                    finally { setToolBusy(false); }
+                  }}>
+                  {toolBusy || health.project_tools.busy
+                    ? lang === "it" ? "Configurazione in corso…" : "Setting up…"
+                    : health.project_tools.installed
+                      ? lang === "it" ? "Verifica Node.js gestito" : "Verify managed Node.js"
+                      : lang === "it" ? "Configura Node.js e npm" : "Set up Node.js and npm"}
+                </button>
+                <p role="status">{health.project_tools.installed ? `Node.js ${health.project_tools.version} · npm` : health.project_tools.error}</p>
+              </div>
+            )}
             <p>
               {lang === "it"
                 ? "Nessuna chiave cloud e nessuna telemetria applicativa. Il modello e il runtime sono avviati localmente dal pacchetto completo."

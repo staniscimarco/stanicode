@@ -8,16 +8,16 @@ import sys
 RECIPES = ("python-unittest", "node-test", "npm-test", "cargo-test")
 
 
-def tools():
+def tools(search_path=None):
     return {
         "python-unittest": True,
-        "node-test": bool(shutil.which("node")),
-        "npm-test": bool(shutil.which("npm")),
-        "cargo-test": bool(shutil.which("cargo")),
+        "node-test": bool(shutil.which("node", path=search_path)),
+        "npm-test": bool(shutil.which("npm", path=search_path)),
+        "cargo-test": bool(shutil.which("cargo", path=search_path)),
     }
 
 
-def command(recipe, root):
+def command(recipe, root, search_path=None):
     root = Path(root)
     if recipe not in RECIPES:
         raise ValueError("Unsupported validation recipe")
@@ -27,7 +27,7 @@ def command(recipe, root):
             result.append(str(Path(__file__).with_name("server.py")))
         return result + ["--run-tests", str(root)]
     executable = {"node-test": "node", "npm-test": "npm", "cargo-test": "cargo"}[recipe]
-    path = shutil.which(executable)
+    path = shutil.which(executable, path=search_path)
     if not path:
         raise ValueError(
             f"{executable} is required by this project and is not installed; STANICODE can still run"
@@ -35,6 +35,11 @@ def command(recipe, root):
     if recipe == "node-test":
         return [path, "--test", "--test-reporter=tap"]
     if recipe == "npm-test":
+        node = shutil.which("node", path=search_path)
+        if node:
+            npm_cli = Path(node).parent / "node_modules/npm/bin/npm-cli.js"
+            if npm_cli.is_file() and Path(path).parent == Path(node).parent:
+                return [node, str(npm_cli), "test", "--offline", "--ignore-scripts=false"]
         return [path, "test", "--offline", "--ignore-scripts=false"]
     return [path, "test", "--offline", "--jobs", "2"] + (
         ["--locked"] if (root / "Cargo.lock").exists() else []

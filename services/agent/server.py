@@ -10,7 +10,8 @@ import threading
 from urllib.parse import urlsplit, parse_qs
 import validation
 from resources import diagnostics
-from engine import Engine, LlamaModel, Store
+from engine import Engine, LlamaModel, Store, execution_environment
+from project_tools import ProjectTools
 from runtime import Runtime
 
 ALLOWED_ORIGINS = {
@@ -21,7 +22,7 @@ ALLOWED_ORIGINS = {
 }
 
 
-def make_server(engine, token, runtime, port=0):
+def make_server(engine, token, runtime, port=0, project_tools=None):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -77,7 +78,8 @@ def make_server(engine, token, runtime, port=0):
                     {
                         "backend": True,
                         "inference": runtime.status,
-                        "validation_recipes": validation.tools(),
+                        "validation_recipes": validation.tools(project_tools.environment(execution_environment()).get("PATH") if project_tools else None),
+                        "project_tools": project_tools.status if project_tools else None,
                         "resources": diagnostics(),
                     },
                 )
@@ -111,7 +113,21 @@ def make_server(engine, token, runtime, port=0):
                 if length < 0 or length > 65536:
                     raise ValueError("Request too large")
                 body = json.loads(self.rfile.read(length))
+                if not isinstance(body, dict):
+                    raise ValueError("A JSON object is required")
+                if self.path in {"/project-tools/node/propose", "/project-tools/node/install"}:
+                    if not project_tools:
+                        raise ValueError("Managed project tool setup is unavailable")
+                    with engine.lock:
+                        if any(task["state"] in {"running", "paused", "awaiting_approval"} for task in engine.tasks.values()):
+                            raise ValueError("Finish or cancel the active task before configuring project tools")
+                        result = (project_tools.propose() if self.path.endswith("/propose") else
+                                  project_tools.install(body.get("approval_id"), execution_environment()))
+                    self.respond(200, result)
+                    return
                 if self.path == "/tasks":
+                    if project_tools and project_tools.busy:
+                        raise ValueError("Wait for the approved project SDK setup to finish")
                     if not runtime.status["ready"]:
                         raise ValueError(
                             "Local inference is unavailable: "
@@ -152,6 +168,18 @@ def main():
 
         research_main(sys.argv[2:])
         return
+    if len(sys.argv) > 1 and sys.argv[1] == "--project-tools":
+        tools_parser = argparse.ArgumentParser(description="Explicitly approved private Node.js project SDK setup")
+        tools_parser.add_argument("--root", required=True)
+        tools_parser.add_argument("--approve-setup", action="store_true")
+        tools_args = tools_parser.parse_args(sys.argv[2:])
+        if not tools_args.approve_setup:
+            raise ValueError("Explicit --approve-setup is required for network access and SDK provisioning")
+        tools = ProjectTools(tools_args.root)
+        proposal = tools.propose()
+        result = tools.install(proposal["approval_id"], execution_environment())
+        print(json.dumps(result))
+        return
     if len(sys.argv) == 3 and sys.argv[1] == "--run-tests":
         from test_runner import run
 
@@ -164,6 +192,7 @@ def main():
         "--bundle", default=str(Path(__file__).resolve().parents[2] / "models")
     )
     args = parser.parse_args()
+    project_tools = ProjectTools(Path(args.data) / "tools")
     if args.ollama_model:
         from ollama import OllamaModel, OllamaRuntime
         runtime = OllamaRuntime(args.ollama_model)
@@ -174,9 +203,10 @@ def main():
     engine = Engine(
         Store(Path(args.data) / "tasks.sqlite3"),
         model,
+        project_tools,
     )
     token = secrets.token_urlsafe(32)
-    server = make_server(engine, token, runtime)
+    server = make_server(engine, token, runtime, project_tools=project_tools)
     print(json.dumps({"port": server.server_port, "token": token}), flush=True)
     threading.Thread(target=runtime.start, daemon=True).start()
     if args.parent_stdin:

@@ -201,6 +201,23 @@ Get-NetTCPConnection -LocalPort 19222 -ErrorAction SilentlyContinue | Select-Obj
                 page.get_by_role("button", name="Settings", exact=True).click()
                 page.get_by_label("Theme").select_option("light")
                 expect(page.locator("html")).to_have_attribute("data-theme", "light")
+                dialogs = []
+                def decline_sdk(dialog):
+                    dialogs.append(dialog.message)
+                    dialog.dismiss()
+                page.once("dialog", decline_sdk)
+                sdk = page.get_by_role("button", name="Set up Node.js and npm", exact=True)
+                sdk.click()
+                deadline = time.monotonic() + 20
+                while not dialogs and time.monotonic() < deadline:
+                    page.wait_for_timeout(100)
+                if not dialogs or "nodejs.org" not in dialogs[0]:
+                    raise AssertionError("Actual SDK approval dialog was not shown")
+                expect(sdk).to_be_enabled(timeout=15000)
+                destination = next(line.removeprefix("Destination: ") for line in dialogs[0].splitlines() if line.startswith("Destination: "))
+                if Path(destination).parent.exists():
+                    raise AssertionError("Declined SDK setup wrote installation data")
+                report["sdk_decline_without_install"] = True
                 # Close the real window through Windows, allowing owned model shutdown.
                 Desktop(backend="win32").window(title="STANICODE").close()
                 app.wait(timeout=30)

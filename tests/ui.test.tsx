@@ -13,11 +13,13 @@ import { App } from "../apps/desktop/src/main";
 describe("Desktop controls (native bridge and HTTP mocked)", () => {
   let ready: boolean;
   let tasks: unknown[];
+  let projectTools: unknown;
   let calls: { path: string; body: any }[];
   beforeEach(() => {
     localStorage.clear();
     ready = true;
     tasks = [];
+    projectTools = null;
     calls = [];
     vi.stubGlobal(
       "fetch",
@@ -30,10 +32,12 @@ describe("Desktop controls (native bridge and HTTP mocked)", () => {
           data = {
             backend: true,
             inference: { ready, detail: ready ? "ready" : "missing model" },
+            project_tools: projectTools,
           };
         if (path === "/tasks" && !body) data = tasks;
         if (path === "/tasks" && body) data = { id: "task1" };
         if (path === "/memory") data = [];
+        if (path === "/project-tools/node/propose") data = { approval_id: "fixture-sdk-approval", version: "24.19.0", destination: "/test/appdata/tools/node" };
         return { ok: true, json: async () => data };
       }),
     );
@@ -65,6 +69,25 @@ describe("Desktop controls (native bridge and HTTP mocked)", () => {
         ),
       ).toBe(true),
     );
+  });
+  it("does not provision a project SDK when the user declines", async () => {
+    projectTools = { supported: true, installed: false, busy: false, version: "24.19.0", phase: "not-installed", error: "" };
+    vi.stubGlobal("confirm", vi.fn(() => false));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Impostazioni", exact: true }));
+    await user.click(await screen.findByRole("button", { name: "Configura Node.js e npm" }));
+    await waitFor(() => expect(window.confirm).toHaveBeenCalled());
+    expect(calls.some((call) => call.path === "/project-tools/node/install")).toBe(false);
+  });
+  it("sends the exact SDK proposal approval after consent", async () => {
+    projectTools = { supported: true, installed: false, busy: false, version: "24.19.0", phase: "not-installed", error: "" };
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Impostazioni", exact: true }));
+    await user.click(await screen.findByRole("button", { name: "Configura Node.js e npm" }));
+    await waitFor(() => expect(calls.some((call) => call.path === "/project-tools/node/install" && call.body.approval_id === "fixture-sdk-approval")).toBe(true));
   });
   it("blocks start when real runtime status is unavailable", async () => {
     ready = false;

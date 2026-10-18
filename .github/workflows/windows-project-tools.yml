@@ -1,0 +1,23 @@
+name: Actual approved private Windows project SDK
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/ci_run.py python -m pip install -r requirements-build.txt pefile==2023.2.7
+      - run: python scripts/ci_run.py python scripts/package_agent.py
+      - run: python scripts/ci_run.py python scripts/smoke_project_tools.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-project-sdk-evidence
+          path: .local/evidence/project-tools.json
+          if-no-files-found: ignore
