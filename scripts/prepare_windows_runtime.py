@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 import urllib.request
+import html
 from prepare_model import download, digest, verify_microsoft
 
 VERSION = "155.0.4283.62"
@@ -34,6 +35,24 @@ def acquire_webview_terms(payload):
             for candidate in candidates:
                 print("::notice title=Microsoft download license dialog::" + json.dumps(candidate)[-13000:].replace("%", "%25"))
             return candidates
+        finally:
+            browser.close()
+
+
+def acquire_credits(destination):
+    """Read credits from the exact fixed binary, never another browser version."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=str((destination / "msedgewebview2.exe").resolve()), headless=True,
+                                            args=["--embedded-browser-webview=show-credits"])
+        try:
+            context = browser.contexts[0] if browser.contexts else browser.new_context()
+            page = context.pages[0] if context.pages else context.new_page()
+            page.goto("edge://credits", wait_until="domcontentloaded", timeout=30000)
+            text = page.locator("body").inner_text()
+            if len(text) < 10000 or "licen" not in text.lower():
+                raise ValueError("Exact runtime did not expose complete upstream credits")
+            (destination / "THIRD-PARTY-CREDITS.txt").write_text(text, encoding="utf-8")
         finally:
             browser.close()
 
@@ -75,6 +94,11 @@ def main():
                 (payload / "WebView2-runtime-terms.txt").write_text(text, encoding="utf-8")
     except Exception as error:
         inspection["eula_dialog_error"] = str(error)
+    try:
+        acquire_credits(destination)
+        inspection["credits_extracted"] = True
+    except Exception as error:
+        inspection["credits_extraction_error"] = str(error)[-2000:]
     for label, url in {
         "Visual-C-runtime-terms": "https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/",
     }.items():
@@ -83,6 +107,14 @@ def main():
                 text = response.read().decode("utf-8", errors="replace")
                 inspection[label] = {"url": response.url, "length": len(text), "excerpt": re.sub(r"<[^>]+>", " ", text)[:1800]}
                 (payload / (label + ".html")).write_text(text, encoding="utf-8")
+                visible = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", "", text, flags=re.I | re.S)
+                visible = html.unescape(re.sub(r"<[^>]+>", "\n", visible))
+                visible = re.sub(r"\n\s*\n+", "\n", visible)
+                heading = re.search(r"MICROSOFT SOFTWARE LICENSE TERMS", visible, re.I)
+                if heading:
+                    terms = visible[heading.start():]
+                    (payload / (label + ".txt")).write_text(terms, encoding="utf-8")
+                    inspection[label]["actual_terms_excerpt"] = terms[:2400]
         except Exception as error:
             inspection[label] = {"error": str(error)}
     redist = Path(os.environ["VCToolsRedistDir"])
@@ -93,8 +125,13 @@ def main():
     for key, value in inspection.items():
         note = json.dumps(value).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
         print("::notice title=Microsoft runtime " + key + "::" + note)
-    # No distributable manifest is created until the actual runtime licensing
-    # terms have been identified. An SDK license is not a substitute.
+    terms = payload / "WebView2-runtime-terms.txt"
+    if terms.is_file():
+        shutil.copy2(terms, destination / "LICENSE-WebView2-runtime.txt")
+        manifest = {"version": VERSION, "source": SOURCE, "archive_sha256": CAB_HASH,
+                    "license_file": "LICENSE-WebView2-runtime.txt",
+                    "files": {p.relative_to(destination).as_posix(): digest(p) for p in sorted(destination.rglob("*")) if p.is_file()}}
+        (destination / "webview2-manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

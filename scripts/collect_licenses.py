@@ -113,10 +113,10 @@ def main():
     component("runtime", "LLVM-OpenMP", manifest["runtime"]["version"], "Apache-2.0 WITH LLVM-exception", [llvm] if llvm.exists() else [])
     for name, source, version in (
         ("Microsoft-WebView2-Runtime", PAYLOAD / "WebView2-runtime-terms.txt", "155.0.4283.62"),
-        ("Microsoft-Visual-C-Runtime", PAYLOAD / "Visual-C-runtime-terms.html", "app-local-release-CRT"),
+        ("Microsoft-Visual-C-Runtime", PAYLOAD / "Visual-C-runtime-terms.txt", "app-local-release-CRT"),
     ):
         component("runtime", name, version, "Microsoft redistribution terms", [source] if source.exists() else [])
-    credits = [p for p in (PAYLOAD / "webview2").rglob("*") if p.is_file() and re.search(r"credits|license", p.name, re.I)]
+    credits = [PAYLOAD / "webview2/THIRD-PARTY-CREDITS.txt"] if (PAYLOAD / "webview2/THIRD-PARTY-CREDITS.txt").is_file() else []
     component("runtime", "WebView2-third-party-notices", "155.0.4283.62", "See upstream notices", credits)
     report = {"bomFormat": "CycloneDX", "specVersion": "1.5", "serialNumber": "urn:uuid:" + str(uuid.uuid4()), "version": 1,
               "metadata": {"component": {"type": "application", "name": "STANICODE", "version": "0.1.0-candidate"}},
