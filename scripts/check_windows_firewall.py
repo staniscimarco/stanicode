@@ -4,6 +4,7 @@ import ast
 import json
 import os
 from pathlib import Path
+import socket
 import subprocess
 import sys
 import tempfile
@@ -32,8 +33,18 @@ def main():
             pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    class MappedServer(ThreadingHTTPServer):
+        address_family = socket.AF_INET6
+
+        def server_bind(self):
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            super().server_bind()
+
+    mapped = MappedServer(("::ffff:127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
+    mapped_thread = threading.Thread(target=mapped.serve_forever, daemon=True)
     thread.start()
+    mapped_thread.start()
     try:
         with tempfile.TemporaryDirectory(prefix="stanicode-firewall-") as directory:
             root = Path(directory).resolve()
@@ -53,6 +64,9 @@ def main():
                 local = subprocess.run([str(curl), "--noproxy", "*", "--fail", "--max-time", "10", f"http://127.0.0.1:{server.server_port}"], capture_output=True)
                 if local.returncode or local.stdout != b"loopback-ok":
                     raise AssertionError("Acceptance firewall incorrectly blocks local backend access")
+                dual = subprocess.run([str(curl), "--noproxy", "*", "--fail", "--max-time", "10", f"http://127.0.0.1:{mapped.server_port}"], capture_output=True)
+                if dual.returncode or dual.stdout != b"loopback-ok":
+                    raise AssertionError("Acceptance firewall blocks IPv4-mapped IPv6 loopback responses")
                 external = subprocess.run([str(curl), "--noproxy", "*", "--fail", "--max-time", "10", "-I", "https://example.com"], capture_output=True)
                 if external.returncode == 0:
                     raise AssertionError("Acceptance firewall did not block external HTTPS")
@@ -63,6 +77,9 @@ def main():
         server.shutdown()
         server.server_close()
         thread.join()
+        mapped.shutdown()
+        mapped.server_close()
+        mapped_thread.join()
 
 
 if __name__ == "__main__":
