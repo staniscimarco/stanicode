@@ -119,7 +119,7 @@ def main():
                     (payload / (label + ".txt")).write_text(terms, encoding="utf-8")
                     inspection[label]["actual_terms_excerpt"] = terms[:2400]
                 else:
-                    links = re.findall(r'href=["\x27]([^"\x27]+\.(?:rtf|pdf|txt)(?:\?[^"\x27]*)?)["\x27]', text, re.I)
+                    links = re.findall(r'(?:href|src)=["\x27]([^"\x27]+\.(?:rtf|pdf|txt)(?:\?[^"\x27]*)?)["\x27]', text, re.I)
                     inspection[label]["license_download_links"] = links
                     for link in links:
                         resolved = urllib.parse.urljoin(response.url, html.unescape(link))
