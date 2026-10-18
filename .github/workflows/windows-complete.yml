@@ -31,6 +31,8 @@ jobs:
         run: python scripts/ci_run.py python scripts/prepare_model.py
       - name: Build standalone backend
         run: python scripts/ci_run.py python scripts/package_agent.py
+      - name: Acquire signed Microsoft fixed runtime and its actual notices
+        run: python scripts/ci_run.py python scripts/prepare_windows_runtime.py
       - name: Real-model coding, actual tests and independent review
         run: python scripts/ci_run.py python scripts/smoke_real_inference.py --agent .local/package/stanicode-agent.exe --bundle .local/package/models
       - name: Compile native Windows desktop
