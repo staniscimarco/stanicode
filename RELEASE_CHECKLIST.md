@@ -11,8 +11,10 @@
 - [x] Actual model generates a project that passes frozen-backend tests and independent review
 - [x] Actual native Windows UI/offline acceptance, shutdown and restart (hosted runner)
 - [x] Complete applicable runtime/dependency license texts and CycloneDX SBOM
-- [ ] Complete portable archive, actual download URL, size and SHA-256
+- [x] Complete portable archive, actual download URL, size and SHA-256 ([receipt](docs/WINDOWS_DELIVERY.md))
 - [x] Actual portable PE import audit
+- [x] Approved private Node/npm SDK installation and actual npm test evidence
+- [x] Native approval cancellation, rollback after restart and memory deletion preserving history
 - [ ] Dedicated clean Windows 10/11 acceptance
 - [x] Implemented security boundary reviewed and regression-tested, plus real-model/native smoke; no penetration-test or OS sandbox claim
 - [x] Editable vector master and small-size/accessibility branding review (owner approval remains separate)

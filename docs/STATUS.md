@@ -1,34 +1,26 @@
 # STANICODE — verification status
 
-Updated 18 October 2026. Public source publication is authorized by the owner. The earlier Windows development installer was downloaded and installed by the owner; it does not contain the model. The complete portable candidate is a separate delivery.
+Updated 19 October 2026. Public source publication is authorized by the owner. The earlier development installer has no model; use the separate complete portable candidate in [Windows delivery](WINDOWS_DELIVERY.md).
 
 ## Verified
 
-- Linux/Windows development CI and native installer compilation have passed. The source suite now contains 59 Python tests. Before the final timestamp regression was added, 57 passed locally and one Windows-only check was skipped; the 11 packaging tests, including that new regression, then passed. Windows/Linux CI rerun the full current suite. Four React tests and the production TypeScript/Vite build also passed.
-- Chromium integration exercises the real UI/backend/files/tests with an explicitly simulated model and native bridge. This is separate from the actual Windows/model acceptance below.
-- Qwen2.5-Coder-7B-Instruct Q4_K_M and llama.cpp b11669 CPU payloads were acquired on Windows and matched pinned upstream SHA-256 values. App-local release CRT DLLs and fixed WebView2 155.0.4283.62 were Microsoft publisher-verified. Runtime terms, full credits, actual transitive dependency notices and a populated CycloneDX inventory were collected. PE import auditing passed, including Microsoft's hash-pinned auxiliary x86 host loader inside its x64 runtime distribution.
-- **Actual native offline acceptance passed** in [39117025871](https://github.com/staniscimarco/stanicode/actions/runs/39117025871) and again with isolated test directories in [39119211505](https://github.com/staniscimarco/stanicode/actions/runs/39119211505). These steps drove the actual Tauri app, fixed WebView2, Windows folder picker, bundled CPU model, explicit file approvals, actual Python tests, independent model review, report export, IT/EN, theme, second-instance handling and restart history. Developer tools were absent from the product PATH, and external traffic was blocked with Windows Firewall. Both complete jobs subsequently failed in archive assembly, not in those functional steps.
-- Standalone real-model acceptance also passed in those runs, including deliberate backend crash/model-process cleanup. The one-directory frozen backend avoids the test-subprocess hangs observed with the earlier one-file packaging.
-- Editable vector branding and generated app/installer icons are implemented and visually inspected; owner approval of the redraw is separate. Optional local Ollama is protocol-tested; acceptance against an installed Ollama service remains unrun.
-- Experimental research preparation exports matched reviewed cases, checks patch provenance and secret patterns, generates a LoRA configuration and validates floating-point checkpoint architecture/tokenizer/tensor compatibility for MergeKit. Eight unit tests cover its safeguards. The actual standalone preparation command was exercised with clearly labeled miniature fixtures. No parameter training, merge, GPU benchmark or automatic promotion was performed or claimed.
-
-## Archive assembly
-
-The native test originally added runtime-generated files to the staging tree. It now uses separate directories with hard-linked immutable payload bytes; new browser state is confined to the test copy. Final manifest coverage remains strict. This isolated native acceptance passed in run 39119211505.
-
-The subsequent ZIP writer rejected a vendor file timestamp older than 1980. The writer now uses the ZIP library's supported timestamp clamping, preserving file bytes and their hashes; its regression test passed. The complete workflow is rerunning this correction.
-
-The ZIP64 assembler checks actual model/runtime/support hashes, complete fixed-WebView inventory, PE headers, license-file hashes, archive CRC and SHA-256. Actions receives the verified directory tree so its downloadable ZIP contains `STANICODE.exe` and the full payload after one extraction. The actual downloadable archive digest is recorded separately from the local assembly ZIP digest.
+- Source `9a5dc10169bc5e794bf1482c3cd2d94f05d02885`: development CI, complete Windows workflow and actual approved private Windows SDK workflow all completed successfully.
+- Python: 71 tests discovered, 70 passed locally and one Windows-only check skipped. Seven React tests and the production TypeScript/Vite build passed. Chromium integration used the real backend/files/tests and explicitly simulated model/native bridge; it is separate from real Windows acceptance.
+- The complete Windows build drove the actual Tauri app, fixed WebView2 and bundled CPU model offline, with developer tools absent from the product PATH and external traffic blocked by Windows Firewall. Folder selection, approved writes, actual Python tests, independent review, report export, locale/theme, single-instance behavior and history after restart passed. New in-app approval dialogs, cancellation of optional SDK installation without installing, rollback after restart and memory deletion preserving task history also passed.
+- Standalone actual-model acceptance passed, including deliberate backend crash and owned model-process cleanup. The frozen backend contains its own Python interpreter.
+- Actual optional private Node 24.19.0/npm installation passed on Windows through the frozen backend: official download, pinned SHA-256, OpenJS Authenticode, real Node/npm tests and unchanged global PATH. No SDK download occurs without approval. npm success requires real nonzero passing test evidence.
+- Pinned model/runtime hashes, Microsoft WebView2/CRT publisher verification, complete dependency/runtime notices, CycloneDX inventory and PE import auditing passed. ZIP64 assembly, archive CRC verification and final Actions upload passed. The actual downloadable ZIP digest is recorded in the delivery receipt, separately from the local assembly ZIP digest.
+- Editable vector branding was visually inspected; owner approval of the redraw is separate. Optional Ollama is protocol-tested; installed-service acceptance is unrun.
+- Experimental research preparation validates reviewed case provenance, secret patterns and floating-point checkpoint compatibility and prepares LoRA/MergeKit configurations. Nine unit tests cover its safeguards. The standalone preparation command was exercised using labeled miniature fixtures. No training, merge, GPU benchmark or automatic promotion was performed.
 
 ## Remaining release gates
 
-- Observe successful complete archive assembly and upload; publish its actual URL, size and downloadable ZIP SHA-256 after it exists.
-- Dedicated clean Windows 10/11 acceptance remains unrun. A hosted Windows Server runner contains development software; hiding PATH, auditing DLLs and executing offline do not establish a fresh Windows 10/11 VM result. No owner PC was remotely accessed.
+- Dedicated clean Windows 10/11 and owner-PC acceptance remain unrun. A hosted Windows Server runner, hidden developer PATH, DLL auditing and offline execution do not establish a clean Windows 10/11 result. No owner PC was remotely accessed.
 - Application signing credentials are absent. Candidate executables are unsigned and may trigger SmartScreen.
-- Actual LoRA training, MergeKit execution and GPU evaluation remain unsupported/unvalidated optional research operations. The core app does not depend on them.
+- Actual optional LoRA training, MergeKit execution and GPU evaluation remain unsupported/unvalidated. Core operation does not depend on them.
 
 ## Security boundary
 
-The implemented authentication, origin/host checks, path restrictions, approval nonces, journal/rollback behavior, process supervision, packaging checks and research input handling were reviewed and regression-tested. This is not an independent penetration test or an OS sandbox. Approved validation executes workspace code with the user's permissions; hostile concurrent filesystem changes are not contained. Private task history remains local. Memory retrieves test-backed cases without training weights. The core requires no cloud AI/account/subscription; Microsoft WebView2's separate data collection and SmartScreen terms are disclosed.
+Authentication, origin/host checks, path restrictions, explicit approvals, journal/rollback, process supervision, packaging checks and research inputs were reviewed and regression-tested. This is not an independent penetration test or an OS sandbox. Approved validation executes workspace code with the user's permissions. History stays local; memory retrieves test-backed cases without training weights. The core requires no cloud AI account; separate Microsoft WebView2 data collection and SmartScreen terms are disclosed.
 
-See [Windows delivery](WINDOWS_DELIVERY.md), [experimental research](EXPERIMENTAL_RESEARCH.md), [advanced local models](ADVANCED_LOCAL_MODELS.md) and [release checklist](../RELEASE_CHECKLIST.md). No completed production release is claimed while required gates remain open.
+See [Windows delivery](WINDOWS_DELIVERY.md), [project tools](PROJECT_TOOLS.md), [research](EXPERIMENTAL_RESEARCH.md) and [release checklist](../RELEASE_CHECKLIST.md). No completed production release is claimed while required gates remain open.

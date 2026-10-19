@@ -1,5 +1,16 @@
 # Windows delivery contract
 
+## Complete Windows candidate — 19 October 2026
+
+[Download STANICODE Windows x64 portable](https://github.com/staniscimarco/stanicode/actions/runs/39125576752/artifacts/12135978883) (GitHub sign-in may be required).
+
+- Downloadable ZIP: **5,651,552,022 bytes** (5.65 GB).
+- SHA-256: `1405f452b66cd51ebdd2933c6520be5d5956500c01d3ff0fe4447f8242c3b667`.
+- Source: `9a5dc10169bc5e794bf1482c3cd2d94f05d02885`; [complete build passed](https://github.com/staniscimarco/stanicode/actions/runs/39125576752).
+- Close the earlier no-model development app, extract the entire ZIP once, then open `STANICODE/STANICODE.exe`. Select a project folder, enter a request and start development. Keep all extracted runtime/model files together.
+- Includes Qwen2.5-Coder-7B-Instruct Q4_K_M, llama.cpp b11669 CPU, bundled Python and fixed WebView2 155.0.4283.62. No separate developer tools are needed to launch. Optional Node/npm project tools are installed privately only with explicit approval; project dependencies and other compilers are separate.
+- Candidate executables are unsigned. Dedicated clean Windows 10/11 and owner-PC acceptance remain unrun; this is not a completed production release. Artifact retention is finite; use the linked run's current artifact.
+
 The end user should receive one archive, extract its complete STANICODE folder and double-click STANICODE.exe. They should not install Python, Node, Rust, Git, Ollama, a model or WebView2 to launch STANICODE. Project toolchains for projects the agent builds are a separate requirement and are detected rather than silently installed.
 
 Development dependencies and payload acquisition are Codex/build-runner work. Do not ask the owner to assemble a runtime/model manually as the acceptance test.
